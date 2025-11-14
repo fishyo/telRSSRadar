@@ -70,3 +70,31 @@ npm start
 - `CHAT_ID`：接收消息的聊天 ID
 - `CHECK_INTERVAL`：检查 RSS 更新的时间间隔（分钟）
 - `RETENTION_DAYS`：保留文章的天数
+
+## 部署到其他设备
+
+您可以将此项目上传到 GitHub，然后在其他设备上部署运行。
+
+### 使用自动化脚本部署（推荐）
+
+为了简化部署过程，项目提供了自动化部署脚本：
+
+- Windows 用户：运行 `deploy-to-github.bat`
+- macOS/Linux 用户：运行 `deploy-to-github.sh`
+
+这些脚本将引导您完成创建 GitHub 仓库和上传代码的全过程。
+
+### 手动部署
+
+详细的手动部署指南请查看 [DEPLOYMENT.md](DEPLOYMENT.md) 文件。
+
+## 故障排除
+
+如果在安装或运行过程中遇到问题，请查看 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) 文件，其中包含了常见问题的解决方案，包括：
+
+- Node.js 版本兼容性问题
+- 编译工具缺失问题
+- 权限问题
+- 网络问题
+- 数据库文件权限问题
+- Telegram Bot 无法启动问题
