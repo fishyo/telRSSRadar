@@ -1,4 +1,4 @@
-# Telegram RSS Bot
+# TelRSSRadar
 
 一个简单的 Telegram RSS 订阅机器人，可自动推送新文章到您的 Telegram 聊天。
 
@@ -70,7 +70,3 @@ npm start
 - `CHAT_ID`：接收消息的聊天 ID
 - `CHECK_INTERVAL`：检查 RSS 更新的时间间隔（分钟）
 - `RETENTION_DAYS`：保留文章的天数
-
-## 部署到其他设备
-
-您可以将此项目上传到 GitHub，然后在其他设备上部署运行。详细部署指南请查看 [DEPLOYMENT.md](DEPLOYMENT.md) 文件。
