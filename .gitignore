@@ -8,6 +8,7 @@ node_modules/
 
 # 数据库文件
 data/
+!data/.gitkeep
 *.db
 *.db-shm
 *.db-wal

@@ -1,7 +1,14 @@
 const Database = require("better-sqlite3");
 const path = require("path");
+const fs = require("fs");
 
-const db = new Database(path.join(__dirname, "../data.db"));
+// 确保 data 目录存在
+const dataDir = path.join(__dirname, "../data");
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+const db = new Database(path.join(dataDir, "rss.db"));
 
 // 创建表结构
 db.exec(`
