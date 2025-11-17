@@ -10,11 +10,26 @@ const dbPath = path.join(dataDir, "rss.db");
 if (!fs.existsSync(dataDir)) {
   console.log(`📁 创建数据目录: ${dataDir}`);
   fs.mkdirSync(dataDir, { recursive: true });
+} else {
+  console.log(`📂 数据目录已存在: ${dataDir}`);
+}
+
+// 列出 data 目录内容
+try {
+  const files = fs.readdirSync(dataDir);
+  console.log(`📋 数据目录内容 (${files.length} 个文件):`, files);
+} catch (err) {
+  console.error(`❌ 无法读取数据目录:`, err);
 }
 
 console.log(`📊 数据库路径: ${dbPath}`);
-console.log(`📂 数据库目录: ${dataDir}`);
 console.log(`✅ 数据库文件存在: ${fs.existsSync(dbPath)}`);
+
+// 如果数据库文件存在，显示文件大小
+if (fs.existsSync(dbPath)) {
+  const stats = fs.statSync(dbPath);
+  console.log(`📏 数据库文件大小: ${stats.size} 字节`);
+}
 
 const db = new Database(dbPath);
 
@@ -68,6 +83,11 @@ const insertSetting = db.prepare(
 insertSetting.run("check_interval", process.env.CHECK_INTERVAL || "10");
 insertSetting.run("retention_days", process.env.RETENTION_DAYS || "30");
 insertSetting.run("retention_count", process.env.RETENTION_COUNT || "100");
+
+// 输出数据库统计信息
+const feedCount = db.prepare("SELECT COUNT(*) as count FROM feeds").get();
+const articleCount = db.prepare("SELECT COUNT(*) as count FROM articles").get();
+console.log(`📊 当前统计: ${feedCount.count} 个订阅源, ${articleCount.count} 篇文章`);
 
 // Feeds 操作
 const feedsDb = {
