@@ -88,65 +88,63 @@ class RSSChecker {
 
   // 检查单个 RSS 源的更新
   async checkFeed(feedId) {
-    const feed = feeds.getById.get(feedId);
-    if (!feed) return;
+    const initialFeed = feeds.getById.get(feedId);
+    if (!initialFeed) {
+      console.error(`Feed with ID ${feedId} not found.`);
+      return;
+    }
 
     try {
-      const rssFeed = await parser.parseURL(feed.url);
+      const rssFeed = await parser.parseURL(initialFeed.url);
+      const liveTitle = rssFeed.title || "Untitled Feed";
 
-      // 仅在标题为空时自动更新（首次添加时）
-      // 如果用户已经设置了自定义标题，则不覆盖
-      if (feed.title === null && rssFeed.title) {
-        feeds.updateTitle.run(rssFeed.title, feedId);
+      // 重新获取最新数据，以防在网络请求期间发生并发修改（例如重命名）
+      const currentFeed = feeds.getById.get(feedId);
+      let displayTitle = currentFeed.title;
+
+      // 如果标题从未设置过 (值为 null), 则使用实时标题自动设置一次
+      if (currentFeed.title === null) {
+        feeds.updateTitle.run(liveTitle, feedId);
+        displayTitle = liveTitle; // 在本次运行中也使用新标题
       }
 
       const newArticles = [];
-
       for (const item of rssFeed.items) {
         const guid = item.guid || item.link || item.title;
-
-        // 检查文章是否已存在
-        const exists = articles.exists.get(feedId, guid);
-        if (exists) continue;
-
-        // 应用过滤规则
-        if (!this.matchesFilters(feedId, item)) {
-          console.log(`Article filtered out: ${item.title}`);
+        if (articles.exists.get(feedId, guid)) {
           continue;
         }
 
-        const publishedAt = item.pubDate
-          ? Math.floor(new Date(item.pubDate).getTime() / 1000)
-          : Math.floor(Date.now() / 1000);
-
-        // 保存到数据库
-        articles.add.run(feedId, guid, item.title, item.link, publishedAt);
-
-        newArticles.push({
-          title: item.title,
-          link: item.link,
-          contentSnippet: item.contentSnippet || item.content,
-          pubDate: item.pubDate,
-        });
+        if (this.matchesFilters(feedId, item)) {
+          const publishedAt = item.pubDate
+            ? Math.floor(new Date(item.pubDate).getTime() / 1000)
+            : Math.floor(Date.now() / 1000);
+          articles.add.run(feedId, guid, item.title, item.link, publishedAt);
+          newArticles.push({
+            title: item.title,
+            link: item.link,
+            contentSnippet: item.contentSnippet || item.content,
+            pubDate: item.pubDate,
+          });
+        }
       }
 
-      // 更新最后检查时间
-      feeds.updateLastCheck.run(Math.floor(Date.now() / 1000), feedId);
-
-      // 推送新文章（实时读取最新自定义标题，避免并发/缓存导致的旧标题）
       if (newArticles.length > 0) {
-        const latestFeed = feeds.getById.get(feedId);
-        const displayTitle = latestFeed?.title ?? rssFeed.title ?? feed.url;
-
-        await this.pushArticles(newArticles, displayTitle);
+        // 确保 displayTitle 是一个有效字符串，如果不是，则使用回退值
+        const finalTitle = displayTitle ?? liveTitle ?? initialFeed.url;
+        await this.pushArticles(newArticles, finalTitle);
       }
 
-      // 重置错误计数
+      feeds.updateLastCheck.run(Math.floor(Date.now() / 1000), feedId);
       await this.errorHandler.handleSuccess(feedId);
 
       return { success: true, newCount: newArticles.length };
     } catch (error) {
-      await this.errorHandler.handleRSSError(feedId, feed.url, error);
+      await this.errorHandler.handleRSSError(
+        initialFeed.id,
+        initialFeed.url,
+        error
+      );
       return { success: false, error: error.message };
     }
   }
