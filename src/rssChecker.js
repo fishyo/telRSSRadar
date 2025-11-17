@@ -96,7 +96,7 @@ class RSSChecker {
 
       // 仅在标题为空时自动更新（首次添加时）
       // 如果用户已经设置了自定义标题，则不覆盖
-      if (!feed.title && rssFeed.title) {
+      if (feed.title === null && rssFeed.title) {
         feeds.updateTitle.run(rssFeed.title, feedId);
       }
 
