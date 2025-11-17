@@ -133,12 +133,13 @@ class RSSChecker {
       // 更新最后检查时间
       feeds.updateLastCheck.run(Math.floor(Date.now() / 1000), feedId);
 
-      // 推送新文章
+      // 推送新文章（实时读取最新自定义标题，避免并发/缓存导致的旧标题）
       if (newArticles.length > 0) {
-        await this.pushArticles(
-          newArticles,
-          feed.title || rssFeed.title || feed.url
-        );
+        const latestFeed = feeds.getById.get(feedId);
+        const displayTitle =
+          (latestFeed && latestFeed.title) || rssFeed.title || feed.url;
+
+        await this.pushArticles(newArticles, displayTitle);
       }
 
       // 重置错误计数
