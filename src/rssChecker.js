@@ -136,8 +136,7 @@ class RSSChecker {
       // 推送新文章（实时读取最新自定义标题，避免并发/缓存导致的旧标题）
       if (newArticles.length > 0) {
         const latestFeed = feeds.getById.get(feedId);
-        const displayTitle =
-          (latestFeed && latestFeed.title) || rssFeed.title || feed.url;
+        const displayTitle = latestFeed?.title ?? rssFeed.title ?? feed.url;
 
         await this.pushArticles(newArticles, displayTitle);
       }
