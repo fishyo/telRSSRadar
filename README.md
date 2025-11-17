@@ -71,22 +71,46 @@ npm start
 - `CHECK_INTERVAL`：检查 RSS 更新的时间间隔（分钟）
 - `RETENTION_DAYS`：保留文章的天数
 
-## 部署到其他设备
+## 部署到服务器
 
-您可以将此项目上传到 GitHub，然后在其他设备上部署运行。
+### 使用 Docker 部署（推荐）
 
-### 使用自动化脚本部署（推荐）
+```bash
+# 克隆项目
+git clone <your-repo-url>
+cd telRSSRadar
 
-为了简化部署过程，项目提供了自动化部署脚本：
+# 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件填入你的配置
 
-- Windows 用户：运行 `deploy-to-github.bat`
-- macOS/Linux 用户：运行 `deploy-to-github.sh`
+# 启动服务
+docker-compose up -d
 
-这些脚本将引导您完成创建 GitHub 仓库和上传代码的全过程。
+# 查看日志
+docker-compose logs -f
+```
 
-### 手动部署
+### Docker 常用命令
 
-详细的手动部署指南请查看 [DEPLOYMENT.md](DEPLOYMENT.md) 文件。
+```bash
+# 查看运行状态
+docker-compose ps
+
+# 重启服务
+docker-compose restart
+
+# 停止服务
+docker-compose down
+
+# 更新代码后重新构建
+docker-compose up -d --build
+
+# 查看实时日志
+docker-compose logs -f
+```
+
+详细部署文档请查看 [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## 故障排除
 

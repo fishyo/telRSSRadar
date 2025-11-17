@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  telrssradar:
+    build: .
+    container_name: telrssradar
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # 持久化数据库文件
+      - ./data:/app/data

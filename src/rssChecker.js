@@ -100,10 +100,12 @@ class RSSChecker {
 
       // 重新获取最新数据，以防在网络请求期间发生并发修改（例如重命名）
       const currentFeed = feeds.getById.get(feedId);
+      console.log(`[DEBUG checkFeed] Feed ${feedId} (re-fetched):`, currentFeed);
       let displayTitle = currentFeed.title;
 
       // 如果标题从未设置过 (值为 null), 则使用实时标题自动设置一次
       if (currentFeed.title === null) {
+        console.log(`[DEBUG checkFeed] Feed ${feedId} title is null, attempting to update.`);
         feeds.updateTitle.run(liveTitle, feedId);
         displayTitle = liveTitle; // 在本次运行中也使用新标题
       }
@@ -132,6 +134,11 @@ class RSSChecker {
       if (newArticles.length > 0) {
         // 确保 displayTitle 是一个有效字符串，如果不是，则使用回退值
         const finalTitle = displayTitle ?? liveTitle ?? initialFeed.url;
+        console.log(`[DEBUG checkFeed] Feed ${feedId} title decision:`, {
+            initialDisplayTitle: displayTitle,
+            liveTitle: liveTitle,
+            finalTitle: finalTitle
+        });
         await this.pushArticles(newArticles, finalTitle);
       }
 
@@ -188,6 +195,23 @@ class RSSChecker {
       return { success: true, deletedCount: deletedCount.changes };
     } catch (error) {
       console.error("❌ 清理旧文章失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 按数量清理文章
+  async cleanupByCount() {
+    try {
+      const retentionResult = settings.get.get("retention_count");
+      const retentionCount = parseInt(retentionResult?.value || "100");
+
+      const deletedCount = articles.deleteByCount.run(retentionCount);
+
+      console.log(`🧹 已按数量清理 ${deletedCount.changes} 篇旧文章`);
+
+      return { success: true, deletedCount: deletedCount.changes };
+    } catch (error) {
+      console.error("❌ 按数量清理旧文章失败:", error);
       return { success: false, error: error.message };
     }
   }

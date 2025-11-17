@@ -47,6 +47,7 @@ const insertSetting = db.prepare(
 );
 insertSetting.run("check_interval", process.env.CHECK_INTERVAL || "10");
 insertSetting.run("retention_days", process.env.RETENTION_DAYS || "30");
+insertSetting.run("retention_count", process.env.RETENTION_COUNT || "100");
 
 // Feeds 操作
 const feedsDb = {
@@ -59,6 +60,20 @@ const feedsDb = {
   updateLastCheck: db.prepare("UPDATE feeds SET last_check = ? WHERE id = ?"),
   updateErrorCount: db.prepare("UPDATE feeds SET error_count = ? WHERE id = ?"),
   resetErrorCount: db.prepare("UPDATE feeds SET error_count = 0 WHERE id = ?"),
+  exportAll: db.prepare(`
+    SELECT
+      f.url,
+      f.title,
+      json_group_array(
+        json_object('type', fi.type, 'keyword', fi.keyword)
+      ) FILTER (WHERE fi.id IS NOT NULL) as filters
+    FROM
+      feeds f
+    LEFT JOIN
+      filters fi ON f.id = fi.feed_id
+    GROUP BY
+      f.id
+  `),
 };
 
 // Articles 操作
@@ -73,7 +88,20 @@ const articlesDb = {
     "SELECT * FROM articles WHERE feed_id = ? ORDER BY published_at DESC LIMIT ?"
   ),
   deleteByFeed: db.prepare("DELETE FROM articles WHERE feed_id = ?"),
-  deleteOlderThan: db.prepare("DELETE FROM articles WHERE created_at < ?"),
+  deleteOlderThan: db.prepare("DELETE FROM articles WHERE published_at < ?"),
+  deleteByCount: db.prepare(`
+    DELETE FROM articles
+    WHERE id IN (
+      SELECT id
+      FROM (
+        SELECT
+          id,
+          ROW_NUMBER() OVER(PARTITION BY feed_id ORDER BY published_at DESC) as rn
+        FROM articles
+      )
+      WHERE rn > ?
+    )
+  `),
   getCount: db.prepare("SELECT COUNT(*) as count FROM articles"),
 };
 
