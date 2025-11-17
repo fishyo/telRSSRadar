@@ -1,6 +1,7 @@
 require("dotenv").config();
 const axios = require("axios");
 const { Telegraf } = require("telegraf");
+const logger = require("./logger");
 const { feeds, filters, settings } = require("./database");
 const setupFilterCommands = require("./commands/filters");
 const RSSChecker = require("./rssChecker");
@@ -165,7 +166,7 @@ bot.command("rename", async (ctx) => {
 
   try {
     const info = feeds.updateTitle.run(newTitle, feedId);
-    console.log(`[DEBUG /rename] DB update info for feed ${feedId}:`, info);
+    logger.debug(`/rename - DB update info for feed ${feedId}:`, info);
     ctx.reply(
       `✅ 已重命名订阅源\n\n` +
         `ID: ${feedId}\n` +
@@ -180,7 +181,7 @@ bot.command("rename", async (ctx) => {
 // /list, /ls 命令: 列出所有 RSS 源
 bot.command(["list", "ls"], async (ctx) => {
   const allFeeds = feeds.getAll.all();
-  console.log("[DEBUG /ls] Feeds fetched from DB:", allFeeds);
+  logger.debug("/ls - Feeds fetched from DB:", allFeeds);
 
   if (allFeeds.length === 0) {
     return ctx.reply(
