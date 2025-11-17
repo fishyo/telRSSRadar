@@ -137,7 +137,7 @@ class RSSChecker {
       if (newArticles.length > 0) {
         await this.pushArticles(
           newArticles,
-          rssFeed.title || feed.title || feed.url
+          feed.title || rssFeed.title || feed.url
         );
       }
 
