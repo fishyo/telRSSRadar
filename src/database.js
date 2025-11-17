@@ -2,13 +2,26 @@ const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
 
-// 确保 data 目录存在
+// 数据库文件路径
 const dataDir = path.join(__dirname, "../data");
+const dbPath = path.join(dataDir, "rss.db");
+
+// 确保 data 目录存在
 if (!fs.existsSync(dataDir)) {
+  console.log(`📁 创建数据目录: ${dataDir}`);
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const db = new Database(path.join(dataDir, "rss.db"));
+console.log(`📊 数据库路径: ${dbPath}`);
+console.log(`📂 数据库目录: ${dataDir}`);
+console.log(`✅ 数据库文件存在: ${fs.existsSync(dbPath)}`);
+
+const db = new Database(dbPath);
+
+// 启用 WAL 模式以提高性能和并发性
+db.pragma('journal_mode = WAL');
+
+console.log(`✅ 数据库已连接: ${dbPath}`);
 
 // 创建表结构
 db.exec(`
