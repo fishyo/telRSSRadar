@@ -6,10 +6,30 @@ const { feeds, filters, settings } = require("./database");
 const setupFilterCommands = require("./commands/filters");
 const RSSChecker = require("./rssChecker");
 const ErrorHandler = require("./errorHandler");
-const { escapeMarkdown } = require("./utils");
+const { escapeMarkdown, createTelegraphAccount } = require("./utils");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const chatId = process.env.CHAT_ID;
+
+// 初始化 Telegraph 账号
+(async () => {
+  try {
+    const tokenResult = settings.get.get("telegraph_token");
+    if (!tokenResult) {
+      console.log("Creating Telegraph account...");
+      const account = await createTelegraphAccount(
+        "RSSBot",
+        "Telegram RSS Bot"
+      );
+      settings.set.run("telegraph_token", account.access_token);
+      console.log("Telegraph account created:", account.short_name);
+    } else {
+      console.log("Telegraph token found.");
+    }
+  } catch (error) {
+    console.error("Failed to initialize Telegraph account:", error);
+  }
+})();
 
 // 初始化错误处理器和 RSS 检查器
 const errorHandler = new ErrorHandler(bot, chatId);
@@ -480,4 +500,4 @@ bot.catch((err, ctx) => {
   ctx.reply("❌ 发生错误，请稍后重试");
 });
 
-module.exports = { bot, rssChecker };
+module.exports = { bot, rssChecker, errorHandler };

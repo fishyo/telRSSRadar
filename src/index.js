@@ -1,6 +1,7 @@
 require("dotenv").config();
-const { bot, rssChecker } = require("./bot");
+const { bot, rssChecker, errorHandler } = require("./bot");
 const { settings } = require("./database");
+const createWebServer = require("./webServer");
 
 // 验证环境变量
 if (!process.env.BOT_TOKEN) {
@@ -105,6 +106,16 @@ async function startScheduler() {
 async function main() {
   try {
     console.log("🚀 正在启动 Telegram RSS Bot...\n");
+
+    // 启动 Web 服务器
+    const webPort = process.env.WEB_PORT || 3000;
+    const app = createWebServer(bot, process.env.CHAT_ID, errorHandler);
+    app.listen(webPort, '127.0.0.1', () => {
+      console.log(`🌐 Web 管理面板已启动: http://localhost:${webPort}`);
+      console.log(`🔒 安全提示: Web 面板仅监听本地回环地址，外部无法访问`);
+      console.log(`🔐 数据库文件位置: ${require('path').join(__dirname, '..', 'data', 'rss.db')}`);
+      console.log(`⚠️  请妥善保管数据库文件，其中包含 API Keys`);
+    });
 
     // 启动 bot（非阻塞方式）
     console.log("🤖 启动 Telegram Bot...");

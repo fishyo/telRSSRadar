@@ -1,9 +1,9 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
+const { DATA_RETENTION, AI } = require('./constants');
 
-// 数据库文件路径
-const dataDir = path.join(__dirname, "../data");
+const dataDir = path.join(__dirname, "..", "data");
 const dbPath = path.join(dataDir, "rss.db");
 
 // 确保 data 目录存在
@@ -46,6 +46,7 @@ db.exec(`
     title TEXT,
     last_check INTEGER,
     error_count INTEGER DEFAULT 0,
+    ai_summary_enabled INTEGER DEFAULT 0,
     created_at INTEGER DEFAULT (strftime('%s', 'now'))
   );
 
@@ -76,13 +77,34 @@ db.exec(`
   );
 `);
 
+// 数据库迁移: 添加 ai_summary_enabled 列(如果不存在)
+try {
+  const columns = db.prepare("PRAGMA table_info(feeds)").all();
+  const hasAIColumn = columns.some(col => col.name === 'ai_summary_enabled');
+  if (!hasAIColumn) {
+    console.log('📝 添加 ai_summary_enabled 列到 feeds 表');
+    db.exec('ALTER TABLE feeds ADD COLUMN ai_summary_enabled INTEGER DEFAULT 0');
+  }
+} catch (error) {
+  console.error('数据库迁移失败:', error);
+}
+
 // 初始化默认设置
 const insertSetting = db.prepare(
   "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
 );
-insertSetting.run("check_interval", process.env.CHECK_INTERVAL || "10");
-insertSetting.run("retention_days", process.env.RETENTION_DAYS || "30");
-insertSetting.run("retention_count", process.env.RETENTION_COUNT || "100");
+insertSetting.run("check_interval", process.env.CHECK_INTERVAL || DATA_RETENTION.DEFAULT_CHECK_INTERVAL.toString());
+insertSetting.run("retention_days", process.env.RETENTION_DAYS || DATA_RETENTION.DEFAULT_DAYS.toString());
+insertSetting.run("retention_count", process.env.RETENTION_COUNT || DATA_RETENTION.DEFAULT_COUNT.toString());
+insertSetting.run("ai_summary_enabled", "false");
+insertSetting.run("ai_provider", "gemini");
+insertSetting.run("ai_api_key_gemini", "");
+insertSetting.run("ai_api_key_deepseek", "");
+insertSetting.run("ai_api_key_qwen", "");
+insertSetting.run("ai_model_gemini", "");
+insertSetting.run("ai_model_deepseek", "");
+insertSetting.run("ai_model_qwen", "");
+insertSetting.run("ai_min_articles", AI.DEFAULT_MIN_ARTICLES.toString()); // 最少文章数量才生成总结
 
 // 输出数据库统计信息
 const feedCount = db.prepare("SELECT COUNT(*) as count FROM feeds").get();
@@ -100,6 +122,7 @@ const feedsDb = {
   updateLastCheck: db.prepare("UPDATE feeds SET last_check = ? WHERE id = ?"),
   updateErrorCount: db.prepare("UPDATE feeds SET error_count = ? WHERE id = ?"),
   resetErrorCount: db.prepare("UPDATE feeds SET error_count = 0 WHERE id = ?"),
+  updateAISummary: db.prepare("UPDATE feeds SET ai_summary_enabled = ? WHERE id = ?"),
   exportAll: db.prepare(`
     SELECT
       f.url,

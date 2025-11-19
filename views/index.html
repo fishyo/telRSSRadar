@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS Bot 管理面板</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+
+        .section-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: transform 0.3s;
+        }
+
+        .collapse-btn:hover {
+            background: #f3f4f6;
+            border-radius: 5px;
+        }
+
+        .collapse-btn.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            max-height: 10000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .sort-select {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .sort-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+
+        .section-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px 10px;
+            transition: transform 0.3s;
+        }
+
+        .collapse-btn:hover {
+            background: #f3f4f6;
+            border-radius: 5px;
+        }
+
+        .collapse-btn.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            max-height: 10000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .sort-select {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .sort-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .feed-list {
+            list-style: none;
+        }
+
+        .feed-item {
+            background: #f9fafb;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .feed-item:hover {
+            background: #f3f4f6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .feed-item.expanded {
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .feed-item.error {
+            border-left-color: #ef4444;
+        }
+
+        .feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .feed-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .feed-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .feed-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .feed-url {
+            color: #888;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .filter-list {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .filter-item {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px 5px 0 0;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .filter-include {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .filter-exclude {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .feed-details {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .feed-details.show {
+            display: block;
+        }
+
+        .article-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .article-item {
+            padding: 8px 12px;
+            background: #f9fafb;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .article-item .article-title {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .article-item .article-date {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .ai-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            background: #f3f4f6;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .ai-toggle:hover {
+            background: #e5e7eb;
+        }
+
+        .ai-toggle input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .ai-toggle-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #666;
+            user-select: none;
+        }
+
+        .ai-toggle input[type="checkbox"]:checked + .ai-toggle-label {
+            color: #10b981;
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.status-configured {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-badge.status-partial {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-badge.status-unconfigured {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status-badge.status-unknown {
+            background: #6b7280;
+            color: white;
+        }
+
+        .status-body {
+            display: grid;
+            gap: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .status-label {
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .status-item span:last-child {
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #333;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .message-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📡 RSS Bot 管理面板</h1>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="value" id="feedCount">-</div>
+                    <div class="label">订阅源</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="articleCount">-</div>
+                    <div class="label">文章总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="checkInterval">-</div>
+                    <div class="label">检查间隔(分钟)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="retentionDays">-</div>
+                    <div class="label">保留天数</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Feed Section -->
+        <div class="section">
+            <h2>➕ 添加订阅源</h2>
+            <div id="addMessage"></div>
+            <div class="form-group">
+                <label for="feedUrl">RSS 订阅链接</label>
+                <div style="display:flex;gap:10px;">
+                    <input type="text" id="feedUrl" placeholder="https://example.com/feed.xml" style="flex:1;">
+                    <button class="btn btn-secondary" onclick="previewFeed()" style="white-space:nowrap;">🔍 预览</button>
+                </div>
+            </div>
+            
+            <!-- 预览结果 -->
+            <div id="previewResult" style="display:none;margin-bottom:15px;padding:15px;background:#f8f9fa;border-radius:8px;border-left:4px solid #667eea;">
+                <div style="font-weight:bold;margin-bottom:10px;color:#333;">📰 <span id="previewTitle">标题</span></div>
+                <div style="color:#666;font-size:14px;margin-bottom:10px;">最新 <span id="previewCount">0</span> 篇文章：</div>
+                <ul id="previewArticles" style="margin:0;padding-left:20px;max-height:200px;overflow-y:auto;"></ul>
+            </div>
+            
+            <div class="form-group">
+                <label for="initMode">初始化方式</label>
+                <select id="initMode" onchange="updateInitModeHint()">
+                    <option value="record">仅记录最新 10 篇（不推送）</option>
+                    <option value="push-1">推送最新 1 篇文章</option>
+                    <option value="push-3">推送最新 3 篇文章</option>
+                    <option value="push-5" selected>推送最新 5 篇文章</option>
+                    <option value="push-10">推送最新 10 篇文章</option>
+                </select>
+                <small id="initModeHint" style="color:#666;margin-top:5px;display:block;">💡 推送模式会立即发送最新文章到 Telegram</small>
+            </div>
+            
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="enableAI" style="width:auto;">
+                    <span>🤖 启用 AI 总结</span>
+                </label>
+                <small style="color:#666;margin-top:5px;display:block;">💡 开启后，该订阅源的更新将会自动生成 AI 总结（需配置 AI API Key）</small>
+            </div>
+            
+            <button class="btn btn-primary" onclick="addFeed()">添加订阅</button>
+        </div>
+
+        <!-- Feeds List -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📋 订阅源列表</h2>
+                <div class="section-controls">
+                    <select class="sort-select" id="feedSort" onchange="sortFeeds()">
+                        <option value="id-asc">按ID升序</option>
+                        <option value="id-desc">按ID降序</option>
+                        <option value="title-asc">按标题A-Z</option>
+                        <option value="title-desc">按标题Z-A</option>
+                        <option value="articles-desc">按文章数降序</option>
+                        <option value="articles-asc">按文章数升序</option>
+                    </select>
+                    <button class="collapse-btn" onclick="toggleSection('feeds')" title="折叠/展开">▼</button>
+                </div>
+            </div>
+            <div class="section-content" id="feedsContent">
+                <div id="feedsLoading" class="loading">加载中...</div>
+                <ul id="feedsList" class="feed-list"></ul>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="section">
+            <div class="section-header">
+                <h2>⚙️ 系统设置</h2>
+                <button class="collapse-btn" onclick="toggleSection('settings')" title="折叠/展开">▼</button>
+            </div>
+            <div class="section-content" id="settingsContent">
+                <div id="settingsMessage"></div>
+                
+                <!-- 数据库信息卡片 -->
+                <div class="status-card" style="margin-bottom: 20px;">
+                    <div class="status-header">
+                        <span class="status-title">💾 数据库信息</span>
+                        <span id="dbStatusBadge" class="status-badge status-success">正常</span>
+                    </div>
+                    <div class="status-body">
+                        <div class="status-item">
+                            <span class="status-label">文件路径:</span>
+                            <span id="dbPath" style="font-family: monospace; font-size: 12px;">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">文件大小:</span>
+                            <span id="dbSize" style="font-weight: bold; color: #667eea;">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">订阅源数:</span>
+                            <span id="dbFeedCount" style="font-weight: bold;">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">文章总数:</span>
+                            <span id="dbArticleCount" style="font-weight: bold;">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top:20px;margin-bottom:15px;color:#333;font-size:16px;">⚙️ 运行参数</h3>
+                
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label for="settingInterval">检查间隔 (分钟)</label>
+                        <input type="number" id="settingInterval" min="1" max="1440">
+                        <small style="display:block;color:#666;margin-top:5px;">自动检查 RSS 更新的时间间隔</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="settingRetentionDays">保留天数</label>
+                        <input type="number" id="settingRetentionDays" min="1" max="365">
+                        <small style="display:block;color:#666;margin-top:5px;">超过此天数的文章将被清理</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="settingRetentionCount">每源保留文章数</label>
+                        <input type="number" id="settingRetentionCount" min="10" max="10000">
+                        <small style="display:block;color:#666;margin-top:5px;">每个订阅源最多保留的文章数量</small>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top:25px;margin-bottom:15px;color:#333;font-size:16px;">🛠️ 操作</h3>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="saveSettings()">💾 保存设置</button>
+                    <button class="btn btn-primary" onclick="manualCheck()">🔄 手动检查更新</button>
+                    <button class="btn btn-danger" onclick="cleanupByDays()">🗑️ 清理旧文章(按天数)</button>
+                    <button class="btn btn-danger" onclick="cleanupByCount()">🗑️ 清理旧文章(按数量)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 总结设置 -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🤖 AI 总结设置</h2>
+                <button class="collapse-btn" onclick="toggleSection('ai')" title="折叠/展开">▼</button>
+            </div>
+            <div class="section-content" id="aiContent">
+                <div id="aiMessage"></div>
+                
+                <!-- 全局开关 -->
+                <div class="status-card" style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div class="status-header" style="border-bottom-color: rgba(255,255,255,0.2);">
+                        <span class="status-title" style="color: white; font-weight: bold;">🎛️ 全局开关</span>
+                    </div>
+                    <div class="status-body">
+                        <div style="padding: 10px 0;">
+                            <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
+                                <input type="checkbox" id="aiEnabled" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                                <span style="font-weight: bold;">启用 AI 总结功能</span>
+                            </label>
+                            <small style="display:block; color: rgba(255,255,255,0.9); margin-top: 8px; padding-left: 30px; line-height: 1.5;">
+                                ✓ 全局开关启用后，还需在订阅源管理中为每个源单独开启 AI 总结<br>
+                                ✓ 单次更新文章数量需达到最少文章数量阈值才会触发 AI 总结
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- AI 配置状态 -->
+                <div id="aiStatusCard" class="status-card" style="margin-bottom: 20px;">
+                    <div class="status-header">
+                        <span class="status-title">📊 配置状态</span>
+                        <span id="aiStatusBadge" class="status-badge status-unknown">未知</span>
+                    </div>
+                    <div class="status-body">
+                        <div class="status-item">
+                            <span class="status-label">全局开关:</span>
+                            <span id="aiGlobalStatus">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">AI 提供商:</span>
+                            <span id="aiProviderStatus">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">API Key:</span>
+                            <span id="aiKeyStatus">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">已启用源数:</span>
+                            <span id="aiEnabledFeedsCount">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top:25px;margin-bottom:15px;color:#333;font-size:16px;">⚙️ AI 提供商配置</h3>
+
+                <div class="form-group">
+                    <label for="aiProvider">AI 提供商</label>
+                    <select id="aiProvider" onchange="onProviderChange()">
+                        <option value="gemini">Google Gemini (推荐免费)</option>
+                        <option value="deepseek">DeepSeek (性价比高)</option>
+                        <option value="qwen">通义千问 (国内稳定)</option>
+                    </select>
+                    <small style="display:block;color:#666;margin-top:5px;">
+                        不同提供商的 API Key 单独保存，切换时无需重新输入
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="aiApiKey">API Key</label>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <input type="password" id="aiApiKey" placeholder="输入 API Key" style="flex:1;">
+                        <button class="btn btn-small" onclick="toggleApiKeyVisibility()" id="toggleKeyBtn" title="显示/隐藏">
+                            👁️
+                        </button>
+                        <button class="btn btn-small btn-danger" onclick="clearApiKey()" title="清除 Key">
+                            🗑️
+                        </button>
+                    </div>
+                    <small id="aiKeyInfo" style="display:block;color:#666;margin-top:5px;">
+                        未配置 API Key
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="aiModel">模型名称 (可选)</label>
+                    <input type="text" id="aiModel" placeholder="留空使用默认模型">
+                    <small id="aiModelHint" style="display:block;color:#666;margin-top:5px;">
+                        Gemini: gemini-2.0-flash-exp | DeepSeek: deepseek-chat | 千问: qwen-turbo
+                    </small>
+                </div>
+
+                <h3 style="margin-top:25px;margin-bottom:15px;color:#333;font-size:16px;">🎚️ 总结参数</h3>
+
+                <div class="form-group">
+                    <label for="aiMinArticles">最少文章数量阈值</label>
+                    <input type="number" id="aiMinArticles" min="1" max="20" placeholder="3">
+                    <small style="display:block;color:#666;margin-top:5px;">
+                        单次更新文章数量低于此值时，跳过 AI 总结直接推送原文 (默认: 3 篇)
+                    </small>
+                </div>
+
+                <h3 style="margin-top:25px;margin-bottom:15px;color:#333;font-size:16px;">🛠️ 操作</h3>
+
+                <div class="action-buttons" style="gap:10px;">
+                    <button class="btn btn-success" onclick="saveAISettings()">💾 保存 AI 设置</button>
+                    <button class="btn btn-primary" onclick="testAIConnection()" id="testAIBtn">🔌 测试连接</button>
+                </div>
+                
+                <!-- API Key 获取帮助 -->
+                <div id="apiKeyHelp" style="margin-top:20px;padding:15px;background:#f9fafb;border-radius:8px;border-left:4px solid #667eea;display:none;">
+                    <h4 style="margin:0 0 10px 0;color:#333;">📖 如何获取 API Key</h4>
+                    <div id="helpContent"></div>
+                </div>
+                
+                <!-- 安全提示 -->
+                <div style="margin-top:20px;padding:15px;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
+                    <h4 style="margin:0 0 10px 0;color:#92400e;display:flex;align-items:center;">
+                        🔒 安全提示
+                    </h4>
+                    <ul style="margin:0;padding-left:20px;color:#78350f;line-height:1.8;">
+                        <li>API Key 存储在本地数据库文件中，请妥善保管</li>
+                        <li>Web 面板仅监听本地地址 (127.0.0.1)，外部无法访问</li>
+                        <li>建议定期在 AI 提供商处检查 API 使用情况</li>
+                        <li>如怀疑密钥泄露，请立即在提供商处撤销并重新生成</li>
+                    </ul>
+                    <details style="margin-top:10px;">
+                        <summary style="cursor:pointer;color:#92400e;font-weight:500;">查看详细安全说明</summary>
+                        <div style="margin-top:10px;padding:10px;background:white;border-radius:4px;font-size:13px;color:#666;">
+                            <p style="margin:5px 0;"><strong>存储位置:</strong> data/rss.db (SQLite 数据库)</p>
+                            <p style="margin:5px 0;"><strong>传输安全:</strong> API Key 通过 HTTPS 发送给 AI 提供商</p>
+                            <p style="margin:5px 0;"><strong>显示安全:</strong> Web 界面永不显示完整 Key</p>
+                            <p style="margin:5px 0;"><strong>日志安全:</strong> 错误日志已过滤敏感信息</p>
+                            <p style="margin:10px 0 5px 0;"><strong>建议措施:</strong></p>
+                            <ul style="margin:0;padding-left:20px;">
+                                <li>定期轮换 API Key</li>
+                                <li>在 AI 提供商处设置使用配额和警报</li>
+                                <li>备份数据库时进行加密</li>
+                                <li>不要与他人共享数据库文件</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 使用统计 -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📊 AI 使用统计</h2>
+                <button class="collapse-btn collapsed" onclick="toggleSection('stats')" title="折叠/展开">▼</button>
+            </div>
+            <div class="section-content collapsed" id="statsContent">
+            <div id="aiStatsLoading" class="loading">加载中...</div>
+            <div id="aiStatsContainer" style="display:none;">
+                <div id="aiStatsSummary" style="margin-bottom:20px;"></div>
+                <h3 style="margin-bottom:10px;color:#666;">最近调用记录</h3>
+                <div id="aiStatsRecent" style="max-height:300px;overflow-y:auto;"></div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="renameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>重命名订阅源</h3>
+            </div>
+            <div class="form-group">
+                <label for="renameTitle">新名称</label>
+                <input type="text" id="renameTitle">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="submitRename()">确定</button>
+                <button class="btn" onclick="closeRenameModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Filter Modal -->
+    <div id="filterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加过滤规则</h3>
+            </div>
+            <div class="form-group">
+                <label for="filterType">过滤类型</label>
+                <select id="filterType">
+                    <option value="include">包含 (仅推送匹配的)</option>
+                    <option value="exclude">排除 (不推送匹配的)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="filterKeyword">关键词</label>
+                <input type="text" id="filterKeyword" placeholder="输入关键词">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="submitFilter()">添加</button>
+                <button class="btn" onclick="closeFilterModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRenameFeedId = null;
+        let currentFilterFeedId = null;
+        let feedStatsMap = new Map();
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('feedCount').textContent = result.data.feedCount;
+                    document.getElementById('articleCount').textContent = result.data.articleCount;
+                    document.getElementById('checkInterval').textContent = result.data.checkInterval;
+                    document.getElementById('retentionDays').textContent = result.data.retentionDays;
+                    document.getElementById('settingInterval').value = result.data.checkInterval;
+                    document.getElementById('settingRetentionDays').value = result.data.retentionDays;
+                    document.getElementById('settingRetentionCount').value = result.data.retentionCount;
+
+                    // 更新数据库信息
+                    if (result.data.database) {
+                        const db = result.data.database;
+                        document.getElementById('dbPath').textContent = db.path || '-';
+                        document.getElementById('dbSize').textContent = db.sizeFormatted || '-';
+                        document.getElementById('dbFeedCount').textContent = result.data.feedCount;
+                        document.getElementById('dbArticleCount').textContent = result.data.articleCount;
+                        
+                        // 更新数据库状态徽章
+                        const badge = document.getElementById('dbStatusBadge');
+                        if (db.exists) {
+                            badge.textContent = '正常';
+                            badge.className = 'status-badge status-success';
+                        } else {
+                            badge.textContent = '异常';
+                            badge.className = 'status-badge status-error';
+                        }
+                    }
+
+                    // 保存每个源的文章数
+                    feedStatsMap.clear();
+                    result.data.feedStats.forEach(stat => {
+                        feedStatsMap.set(stat.feedId, stat.articleCount);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Load feeds
+        async function loadFeeds() {
+            try {
+                document.getElementById('feedsLoading').style.display = 'block';
+                const response = await fetch('/api/feeds');
+                const result = await response.json();
+
+                if (result.success) {
+                    const feedsList = document.getElementById('feedsList');
+                    feedsList.innerHTML = '';
+
+                    for (const feed of result.data) {
+                        const filters = await loadFilters(feed.id);
+                        const feedItem = createFeedElement(feed, filters);
+                        feedsList.appendChild(feedItem);
+                    }
+                }
+                document.getElementById('feedsLoading').style.display = 'none';
+            } catch (error) {
+                console.error('Failed to load feeds:', error);
+                document.getElementById('feedsLoading').textContent = '加载失败';
+            }
+        }
+
+        // Load filters for a feed
+        async function loadFilters(feedId) {
+            try {
+                const response = await fetch(`/api/feeds/${feedId}/filters`);
+                const result = await response.json();
+                return result.success ? result.data : [];
+            } catch (error) {
+                console.error('Failed to load filters:', error);
+                return [];
+            }
+        }
+
+        // Create feed element
+        function createFeedElement(feed, filters) {
+            const li = document.createElement('li');
+            li.className = 'feed-item' + (feed.error_count > 0 ? ' error' : '');
+            li.dataset.feedId = feed.id;
+
+            const articleCount = feedStatsMap.get(feed.id) || 0;
+
+            let filtersHtml = '';
+            if (filters.length > 0) {
+                filtersHtml = '<div class="filter-list">';
+                filters.forEach(filter => {
+                    filtersHtml += `<span class="filter-item filter-${filter.type}">${filter.type === 'include' ? '包含' : '排除'}: ${filter.keyword} <a href="#" onclick="deleteFilter(${filter.id}); return false;">×</a></span>`;
+                });
+                filtersHtml += '</div>';
+            }
+
+            li.innerHTML = `
+                <div class="feed-header" onclick="toggleFeedDetails(${feed.id})">
+                    <div class="feed-title">
+                        #${feed.id} ${feed.title || '未命名'}
+                        <span class="badge badge-info">${articleCount} 篇文章</span>
+                        ${feed.ai_summary_enabled ? '<span class="badge badge-success">🤖 AI</span>' : ''}
+                    </div>
+                    <div class="feed-actions" onclick="event.stopPropagation();">
+                        <label class="ai-toggle" title="${feed.ai_summary_enabled ? '禁用 AI 总结' : '启用 AI 总结'}">
+                            <input type="checkbox" ${feed.ai_summary_enabled ? 'checked' : ''} 
+                                   onchange="toggleAISummary(${feed.id}, this.checked)">
+                            <span class="ai-toggle-label">AI</span>
+                        </label>
+                        <button class="btn btn-primary btn-small" onclick="openRenameModal(${feed.id}, '${(feed.title || '').replace(/'/g, "\\'")}')">重命名</button>
+                        <button class="btn btn-success btn-small" onclick="openFilterModal(${feed.id})">过滤</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteFeed(${feed.id})">删除</button>
+                    </div>
+                </div>
+                <div class="feed-info">错误次数: ${feed.error_count} | 最后检查: ${feed.last_check ? new Date(feed.last_check * 1000).toLocaleString('zh-CN') : '未检查'}</div>
+                <div class="feed-url">${feed.url}</div>
+                ${filtersHtml}
+                <div class="feed-details" id="details-${feed.id}">
+                    <div id="articles-${feed.id}" class="article-list">
+                        <div class="loading">加载中...</div>
+                    </div>
+                    <div class="detail-actions">
+                        <button class="btn btn-danger btn-small" onclick="clearFeedArticles(${feed.id})">清空该源的文章</button>
+                    </div>
+                </div>
+            `;
+
+            return li;
+        }
+
+        // Toggle feed details
+        async function toggleFeedDetails(feedId) {
+            const detailsDiv = document.getElementById(`details-${feedId}`);
+            const feedItem = document.querySelector(`[data-feed-id="${feedId}"]`);
+
+            if (detailsDiv.classList.contains('show')) {
+                detailsDiv.classList.remove('show');
+                feedItem.classList.remove('expanded');
+            } else {
+                detailsDiv.classList.add('show');
+                feedItem.classList.add('expanded');
+                await loadFeedArticles(feedId);
+            }
+        }
+
+        // Load articles for a feed
+        async function loadFeedArticles(feedId) {
+            try {
+                const articlesDiv = document.getElementById(`articles-${feedId}`);
+                articlesDiv.innerHTML = '<div class="loading">加载中...</div>';
+
+                const response = await fetch(`/api/feeds/${feedId}/articles?limit=50`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.data.length === 0) {
+                        articlesDiv.innerHTML = '<div style="text-align:center;color:#999;padding:20px;">暂无文章</div>';
+                    } else {
+                        articlesDiv.innerHTML = result.data.map(article => `
+                            <div class="article-item">
+                                <div class="article-title">${article.title || '无标题'}</div>
+                                <div class="article-date">${new Date(article.published_at * 1000).toLocaleString('zh-CN')}</div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    articlesDiv.innerHTML = `<div class="loading">加载失败: ${result.error}</div>`;
+                }
+            } catch (error) {
+                console.error('Failed to load articles:', error);
+                const articlesDiv = document.getElementById(`articles-${feedId}`);
+                if (articlesDiv) {
+                    articlesDiv.innerHTML = `<div class="loading">加载失败: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Clear feed articles
+        async function clearFeedArticles(feedId) {
+            if (!confirm('确定要清空该订阅源的所有文章吗？')) return;
+
+            try {
+                const response = await fetch(`/api/feeds/${feedId}/articles`, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`已清理 ${result.deletedCount} 篇文章`);
+                    await loadFeedArticles(feedId);
+                    loadStats();
+                } else {
+                    alert('清理失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('清理失败: ' + error.message);
+            }
+        }
+
+        // Add feed
+        // 折叠/展开模块
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + 'Content');
+            const btn = event.target;
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                btn.classList.remove('collapsed');
+            } else {
+                content.classList.add('collapsed');
+                btn.classList.add('collapsed');
+            }
+        }
+
+        // 排序订阅源
+        function sortFeeds() {
+            const sortValue = document.getElementById('feedSort').value;
+            const feedsList = document.getElementById('feedsList');
+            const items = Array.from(feedsList.children);
+            
+            items.sort((a, b) => {
+                const [field, order] = sortValue.split('-');
+                let aVal, bVal;
+                
+                if (field === 'id') {
+                    aVal = parseInt(a.dataset.feedId);
+                    bVal = parseInt(b.dataset.feedId);
+                } else if (field === 'title') {
+                    aVal = a.querySelector('.feed-title').textContent.toLowerCase();
+                    bVal = b.querySelector('.feed-title').textContent.toLowerCase();
+                } else if (field === 'articles') {
+                    const aBadge = a.querySelector('.badge-info');
+                    const bBadge = b.querySelector('.badge-info');
+                    aVal = aBadge ? parseInt(aBadge.textContent) : 0;
+                    bVal = bBadge ? parseInt(bBadge.textContent) : 0;
+                }
+                
+                if (order === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            feedsList.innerHTML = '';
+            items.forEach(item => feedsList.appendChild(item));
+        }
+
+        // 折叠/展开模块
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + 'Content');
+            const btn = event.target;
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                btn.classList.remove('collapsed');
+            } else {
+                content.classList.add('collapsed');
+                btn.classList.add('collapsed');
+            }
+        }
+
+        // 排序订阅源
+        function sortFeeds() {
+            const sortValue = document.getElementById('feedSort').value;
+            const feedsList = document.getElementById('feedsList');
+            const items = Array.from(feedsList.children);
+            
+            items.sort((a, b) => {
+                const [field, order] = sortValue.split('-');
+                let aVal, bVal;
+                
+                if (field === 'id') {
+                    aVal = parseInt(a.dataset.feedId);
+                    bVal = parseInt(b.dataset.feedId);
+                } else if (field === 'title') {
+                    aVal = a.querySelector('.feed-title').textContent.toLowerCase();
+                    bVal = b.querySelector('.feed-title').textContent.toLowerCase();
+                } else if (field === 'articles') {
+                    const aBadge = a.querySelector('.badge-info');
+                    const bBadge = b.querySelector('.badge-info');
+                    aVal = aBadge ? parseInt(aBadge.textContent) : 0;
+                    bVal = bBadge ? parseInt(bBadge.textContent) : 0;
+                }
+                
+                if (order === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            feedsList.innerHTML = '';
+            items.forEach(item => feedsList.appendChild(item));
+        }
+
+        // 预览RSS源
+        async function previewFeed() {
+            const url = document.getElementById('feedUrl').value.trim();
+            if (!url) {
+                showMessage('addMessage', '请输入 RSS 链接', 'error');
+                return;
+            }
+
+            const previewResult = document.getElementById('previewResult');
+            previewResult.style.display = 'none';
+            showMessage('addMessage', '🔍 正在加载预览...', 'info');
+
+            try {
+                const response = await fetch('/api/feeds/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                // 检查响应是否成功
+                if (!response.ok) {
+                    const result = await response.json();
+                    showMessage('addMessage', '❌ ' + (result.error || '预览失败'), 'error');
+                    return;
+                }
+                
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('previewTitle').textContent = result.data.title;
+                    document.getElementById('previewCount').textContent = result.data.articles.length;
+                    
+                    const articlesList = document.getElementById('previewArticles');
+                    articlesList.innerHTML = result.data.articles.map(article => 
+                        `<li style="margin-bottom:5px;"><a href="${article.link}" target="_blank" style="color:#667eea;text-decoration:none;">${article.title}</a></li>`
+                    ).join('');
+                    
+                    previewResult.style.display = 'block';
+                    showMessage('addMessage', '✅ 预览加载成功', 'success');
+                } else {
+                    showMessage('addMessage', '❌ ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('预览错误:', error);
+                let errorMsg = '预览失败';
+                
+                if (error.message === 'Failed to fetch') {
+                    errorMsg = '无法连接到服务器，请确保服务正在运行 (http://localhost:3000)';
+                } else if (error.name === 'TypeError') {
+                    errorMsg = '网络连接失败，请检查网络连接';
+                } else {
+                    errorMsg += ': ' + error.message;
+                }
+                
+                showMessage('addMessage', '❌ ' + errorMsg, 'error');
+            }
+        }
+
+        // 更新初始化模式提示
+        function updateInitModeHint() {
+            const initMode = document.getElementById('initMode').value;
+            const hint = document.getElementById('initModeHint');
+            
+            if (initMode === 'record') {
+                hint.textContent = '💾 仅记录文章到数据库，不会推送到 Telegram';
+            } else {
+                const count = initMode.split('-')[1];
+                hint.textContent = `💡 推送模式会立即发送最新 ${count} 篇文章到 Telegram`;
+            }
+        }
+
+        async function addFeed() {
+            const url = document.getElementById('feedUrl').value.trim();
+            if (!url) {
+                showMessage('addMessage', '请输入 RSS 链接', 'error');
+                return;
+            }
+
+            const initMode = document.getElementById('initMode').value;
+            const pushLatest = initMode !== 'record';
+            const pushCount = pushLatest ? parseInt(initMode.split('-')[1]) : 0;
+            const enableAI = document.getElementById('enableAI').checked;
+
+            try {
+                const response = await fetch('/api/feeds', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, pushLatest, pushCount, enableAI })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    const message = result.data.pushed 
+                        ? `✅ 添加成功: ${result.data.title} (已推送 ${result.data.articleCount} 篇最新文章)` 
+                        : `✅ 添加成功: ${result.data.title} (已记录 ${result.data.articleCount} 篇文章)`;
+                    showMessage('addMessage', message, 'success');
+                    document.getElementById('feedUrl').value = '';
+                    document.getElementById('initMode').value = 'push-5';
+                    document.getElementById('enableAI').checked = false;
+                    document.getElementById('previewResult').style.display = 'none';
+                    updateInitModeHint();
+                    loadFeeds();
+                    loadStats();
+                } else {
+                    showMessage('addMessage', '❌ ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('addMessage', '❌ 添加失败: ' + error.message, 'error');
+            }
+        }
+
+        // Delete feed
+        async function deleteFeed(id) {
+            if (!confirm('确定要删除这个订阅源吗?')) return;
+
+            try {
+                const response = await fetch(`/api/feeds/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (result.success) {
+                    loadFeeds();
+                    loadStats();
+                } else {
+                    alert('删除失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('删除失败: ' + error.message);
+            }
+        }
+
+        // Rename modal
+        function openRenameModal(id, title) {
+            currentRenameFeedId = id;
+            document.getElementById('renameTitle').value = title;
+            document.getElementById('renameModal').classList.add('active');
+        }
+
+        function closeRenameModal() {
+            document.getElementById('renameModal').classList.remove('active');
+        }
+
+        async function submitRename() {
+            const title = document.getElementById('renameTitle').value.trim();
+            if (!title) return;
+
+            try {
+                const response = await fetch(`/api/feeds/${currentRenameFeedId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    closeRenameModal();
+                    loadFeeds();
+                } else {
+                    alert('重命名失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('重命名失败: ' + error.message);
+            }
+        }
+
+        // Filter modal
+        function openFilterModal(id) {
+            currentFilterFeedId = id;
+            document.getElementById('filterKeyword').value = '';
+            document.getElementById('filterModal').classList.add('active');
+        }
+
+        function closeFilterModal() {
+            document.getElementById('filterModal').classList.remove('active');
+        }
+
+        async function submitFilter() {
+            const type = document.getElementById('filterType').value;
+            const keyword = document.getElementById('filterKeyword').value.trim();
+
+            if (!keyword) return;
+
+            try {
+                const response = await fetch('/api/filters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ feedId: currentFilterFeedId, type, keyword })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    closeFilterModal();
+                    loadFeeds();
+                } else {
+                    alert('添加过滤规则失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('添加过滤规则失败: ' + error.message);
+            }
+        }
+
+        // Delete filter
+        async function deleteFilter(id) {
+            if (!confirm('确定要删除这个过滤规则吗?')) return;
+
+            try {
+                const response = await fetch(`/api/filters/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+
+                if (result.success) {
+                    loadFeeds();
+                }
+            } catch (error) {
+                alert('删除失败: ' + error.message);
+            }
+        }
+
+        // Save settings
+        async function saveSettings() {
+            const checkInterval = parseInt(document.getElementById('settingInterval').value);
+            const retentionDays = parseInt(document.getElementById('settingRetentionDays').value);
+            const retentionCount = parseInt(document.getElementById('settingRetentionCount').value);
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ checkInterval, retentionDays, retentionCount })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('settingsMessage', '✅ 设置已保存 (需要重启服务生效)', 'success');
+                    loadStats();
+                } else {
+                    showMessage('settingsMessage', '❌ ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('settingsMessage', '❌ 保存失败: ' + error.message, 'error');
+            }
+        }
+
+        // Manual check
+        async function manualCheck() {
+            if (!confirm('确定要手动检查所有订阅源更新吗?')) return;
+
+            showMessage('settingsMessage', '⏳ 检查中...', 'success');
+            try {
+                const response = await fetch('/api/check', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('settingsMessage', `✅ 检查完成: ${result.data.successCount} 成功, ${result.data.failCount} 失败`, 'success');
+                    loadFeeds();
+                    loadStats();
+                }
+            } catch (error) {
+                showMessage('settingsMessage', '❌ 检查失败: ' + error.message, 'error');
+            }
+        }
+
+        // Cleanup by days
+        async function cleanupByDays() {
+            if (!confirm('确定要清理旧文章吗? (按天数)')) return;
+
+            try {
+                const response = await fetch('/api/cleanup/days', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('settingsMessage', `✅ 已清理 ${result.deletedCount} 篇文章`, 'success');
+                    loadStats();
+                }
+            } catch (error) {
+                showMessage('settingsMessage', '❌ 清理失败: ' + error.message, 'error');
+            }
+        }
+
+        // Cleanup by count
+        async function cleanupByCount() {
+            if (!confirm('确定要清理旧文章吗? (按数量)')) return;
+
+            try {
+                const response = await fetch('/api/cleanup/count', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('settingsMessage', `✅ 已清理 ${result.deletedCount} 篇文章`, 'success');
+                    loadStats();
+                }
+            } catch (error) {
+                showMessage('settingsMessage', '❌ 清理失败: ' + error.message, 'error');
+            }
+        }
+
+        // Show message
+        function showMessage(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="message message-${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Toggle AI summary for feed
+        async function toggleAISummary(feedId, enabled) {
+            try {
+                const response = await fetch(`/api/feeds/${feedId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ aiSummaryEnabled: enabled })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    loadFeeds();
+                    // 更新 AI 状态卡片
+                    loadAISettings();
+                } else {
+                    alert('设置失败: ' + result.error);
+                    // 恢复开关状态
+                    event.target.checked = !enabled;
+                }
+            } catch (error) {
+                alert('设置失败: ' + error.message);
+                // 恢复开关状态
+                event.target.checked = !enabled;
+            }
+        }
+
+        // Load AI settings
+        async function loadAISettings() {
+            try {
+                const response = await fetch('/api/ai-settings');
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('aiEnabled').checked = result.data.enabled;
+                    document.getElementById('aiProvider').value = result.data.provider;
+                    if (result.data.apiKey && !result.data.apiKey.startsWith('***')) {
+                        document.getElementById('aiApiKey').value = result.data.apiKey;
+                    }
+                    document.getElementById('aiModel').value = result.data.model || '';
+                    document.getElementById('aiMinArticles').value = result.data.minArticles || 3;
+                    
+                    // 更新状态卡片
+                    updateAIStatusCard(result.data);
+                    
+                    // 更新 API Key 信息显示
+                    updateApiKeyInfo(result.data.apiKey, result.data.provider);
+                }
+            } catch (error) {
+                console.error('Failed to load AI settings:', error);
+            }
+        }
+
+        // Update API Key info display
+        function updateApiKeyInfo(apiKey, provider) {
+            const keyInfo = document.getElementById('aiKeyInfo');
+            if (apiKey && apiKey.startsWith('***')) {
+                const lastFour = apiKey.slice(-4);
+                keyInfo.textContent = `已配置 (****${lastFour})`;
+                keyInfo.style.color = '#10b981';
+            } else if (apiKey) {
+                keyInfo.textContent = `已输入 (未保存)`;
+                keyInfo.style.color = '#f59e0b';
+            } else {
+                keyInfo.textContent = '未配置 API Key';
+                keyInfo.style.color = '#ef4444';
+            }
+        }
+
+        // Toggle API Key visibility
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('aiApiKey');
+            const btn = document.getElementById('toggleKeyBtn');
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+                btn.title = '隐藏';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+                btn.title = '显示';
+            }
+        }
+
+        // Clear API Key
+        function clearApiKey() {
+            if (confirm('确定要清除 API Key 吗？')) {
+                document.getElementById('aiApiKey').value = '';
+                updateApiKeyInfo('', document.getElementById('aiProvider').value);
+            }
+        }
+
+        // Provider change handler
+        async function onProviderChange() {
+            const provider = document.getElementById('aiProvider').value;
+            const helpDiv = document.getElementById('apiKeyHelp');
+            const helpContent = document.getElementById('helpContent');
+            
+            // 先保存提供商选择
+            try {
+                await fetch('/api/ai-settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider })
+                });
+                // 然后重新加载对应提供商的配置
+                await loadAISettings();
+            } catch (error) {
+                console.error('Failed to update provider:', error);
+            }
+            
+            const helpTexts = {
+                'gemini': `
+                    <p><strong>Google Gemini API Key 获取步骤:</strong></p>
+                    <ol style="margin:10px 0;padding-left:20px;">
+                        <li>访问 <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#667eea;">Google AI Studio</a></li>
+                        <li>使用 Google 账号登录</li>
+                        <li>点击 "Create API Key" 按钮</li>
+                        <li>复制生成的 API Key 并粘贴到上方输入框</li>
+                    </ol>
+                    <p style="color:#666;font-size:13px;">💡 Gemini API 目前免费使用，每分钟最多 60 个请求</p>
+                `,
+                'deepseek': `
+                    <p><strong>DeepSeek API Key 获取步骤:</strong></p>
+                    <ol style="margin:10px 0;padding-left:20px;">
+                        <li>访问 <a href="https://platform.deepseek.com" target="_blank" style="color:#667eea;">DeepSeek 平台</a></li>
+                        <li>注册并登录账号</li>
+                        <li>进入 API Keys 页面</li>
+                        <li>创建新的 API Key</li>
+                        <li>复制 Key 并粘贴到上方输入框</li>
+                    </ol>
+                    <p style="color:#666;font-size:13px;">💰 DeepSeek 定价: 输入 ¥1/M tokens, 输出 ¥2/M tokens</p>
+                `,
+                'qwen': `
+                    <p><strong>通义千问 API Key 获取步骤:</strong></p>
+                    <ol style="margin:10px 0;padding-left:20px;">
+                        <li>访问 <a href="https://dashscope.aliyun.com" target="_blank" style="color:#667eea;">阿里云 DashScope</a></li>
+                        <li>使用阿里云账号登录</li>
+                        <li>进入 API-KEY 管理页面</li>
+                        <li>创建新的 API Key</li>
+                        <li>复制 Key 并粘贴到上方输入框</li>
+                    </ol>
+                    <p style="color:#666;font-size:13px;">💰 千问定价: 输入 ¥0.5/M tokens, 输出 ¥2/M tokens</p>
+                `
+            };
+            
+            helpContent.innerHTML = helpTexts[provider] || '';
+            helpDiv.style.display = 'block';
+            
+            // 更新模型提示
+            const modelHints = {
+                'gemini': 'Gemini: gemini-2.0-flash-exp (推荐) | gemini-pro',
+                'deepseek': 'DeepSeek: deepseek-chat (推荐)',
+                'qwen': '千问: qwen-turbo (推荐) | qwen-plus | qwen-max'
+            };
+            document.getElementById('aiModelHint').textContent = modelHints[provider] || '';
+        }
+
+        // Test AI connection
+        async function testAIConnection() {
+            const provider = document.getElementById('aiProvider').value;
+            const apiKey = document.getElementById('aiApiKey').value.trim();
+            const model = document.getElementById('aiModel').value.trim();
+            
+            if (!apiKey || apiKey.startsWith('***')) {
+                showMessage('aiMessage', '⚠️ 请先输入 API Key', 'error');
+                return;
+            }
+            
+            const testBtn = document.getElementById('testAIBtn');
+            const originalText = testBtn.textContent;
+            testBtn.disabled = true;
+            testBtn.textContent = '⏳ 测试中...';
+            
+            try {
+                // 先保存设置
+                const saveResponse = await fetch('/api/ai-settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: true, provider, apiKey, model })
+                });
+                
+                if (!saveResponse.ok) {
+                    throw new Error('保存设置失败');
+                }
+                
+                // 这里可以添加实际的测试 API 调用
+                // 由于我们没有专门的测试端点，暂时只检查保存是否成功
+                showMessage('aiMessage', '✅ API Key 已保存，将在下次 RSS 检查时测试实际连接', 'success');
+                loadAISettings();
+            } catch (error) {
+                showMessage('aiMessage', '❌ 测试失败: ' + error.message, 'error');
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = originalText;
+            }
+        }
+
+        // Update AI status card
+        async function updateAIStatusCard(aiSettings) {
+            // 获取已启用 AI 的订阅源数量
+            let enabledFeedsCount = 0;
+            try {
+                const feedsResponse = await fetch('/api/feeds');
+                const feedsResult = await feedsResponse.json();
+                if (feedsResult.success) {
+                    enabledFeedsCount = feedsResult.data.filter(f => f.ai_summary_enabled === 1).length;
+                }
+            } catch (error) {
+                console.error('Failed to count enabled feeds:', error);
+            }
+
+            // 更新状态显示
+            const hasApiKey = aiSettings.apiKey && aiSettings.apiKey !== '';
+            const isGlobalEnabled = aiSettings.enabled;
+            
+            // 全局状态
+            document.getElementById('aiGlobalStatus').textContent = isGlobalEnabled ? '✅ 已启用' : '❌ 已禁用';
+            
+            // 提供商
+            const providerNames = {
+                'gemini': 'Google Gemini',
+                'deepseek': 'DeepSeek',
+                'qwen': '通义千问'
+            };
+            document.getElementById('aiProviderStatus').textContent = providerNames[aiSettings.provider] || aiSettings.provider;
+            
+            // API Key 状态
+            document.getElementById('aiKeyStatus').textContent = hasApiKey ? '✅ 已配置' : '❌ 未配置';
+            
+            // 已启用源数
+            document.getElementById('aiEnabledFeedsCount').textContent = `${enabledFeedsCount} 个`;
+            
+            // 整体状态徽章
+            const statusBadge = document.getElementById('aiStatusBadge');
+            if (isGlobalEnabled && hasApiKey && enabledFeedsCount > 0) {
+                statusBadge.textContent = '✅ 已配置';
+                statusBadge.className = 'status-badge status-configured';
+            } else if (hasApiKey && (isGlobalEnabled || enabledFeedsCount > 0)) {
+                statusBadge.textContent = '⚠️ 部分配置';
+                statusBadge.className = 'status-badge status-partial';
+            } else {
+                statusBadge.textContent = '❌ 未配置';
+                statusBadge.className = 'status-badge status-unconfigured';
+            }
+        }
+
+        // Save AI settings
+        async function saveAISettings() {
+            const enabled = document.getElementById('aiEnabled').checked;
+            const provider = document.getElementById('aiProvider').value;
+            const apiKey = document.getElementById('aiApiKey').value.trim();
+            const model = document.getElementById('aiModel').value.trim();
+            const minArticles = parseInt(document.getElementById('aiMinArticles').value) || 3;
+
+            try {
+                const response = await fetch('/api/ai-settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled, provider, apiKey, model, minArticles })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('aiMessage', '✅ AI 设置已保存', 'success');
+                    loadAISettings(); // 重新加载以更新状态卡片
+                    loadAIStats();
+                } else {
+                    showMessage('aiMessage', '❌ ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('aiMessage', '❌ 保存失败: ' + error.message, 'error');
+            }
+        }
+
+        // Load AI stats
+        async function loadAIStats() {
+            try {
+                document.getElementById('aiStatsLoading').style.display = 'block';
+                document.getElementById('aiStatsContainer').style.display = 'none';
+                
+                const response = await fetch('/api/ai-stats?days=30');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const { summary, recentCalls } = result.data;
+                    
+                    // 显示汇总统计
+                    let summaryHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;">';
+                    
+                    if (summary.length === 0) {
+                        summaryHtml = '<p style="text-align:center;color:#999;">暂无使用记录</p>';
+                    } else {
+                        summary.forEach(stat => {
+                            const currency = stat.provider === 'gemini' ? 'USD' : 'CNY';
+                            summaryHtml += `
+                                <div style="background:#f9fafb;padding:15px;border-radius:8px;">
+                                    <div style="font-weight:600;color:#333;margin-bottom:10px;">${stat.provider.toUpperCase()}</div>
+                                    <div style="font-size:13px;color:#666;margin-bottom:5px;">调用次数: ${stat.call_count}</div>
+                                    <div style="font-size:13px;color:#666;margin-bottom:5px;">输入 Token: ${stat.total_input_tokens.toLocaleString()}</div>
+                                    <div style="font-size:13px;color:#666;margin-bottom:5px;">输出 Token: ${stat.total_output_tokens.toLocaleString()}</div>
+                                    <div style="font-size:13px;color:#666;margin-bottom:5px;">总 Token: ${stat.total_tokens.toLocaleString()}</div>
+                                    <div style="font-size:14px;color:#10b981;font-weight:600;">成本: ${stat.total_cost.toFixed(4)} ${currency}</div>
+                                    <div style="font-size:12px;color:#888;margin-top:5px;">总文章数: ${stat.total_articles}</div>
+                                </div>
+                            `;
+                        });
+                    }
+                    summaryHtml += '</div>';
+                    document.getElementById('aiStatsSummary').innerHTML = summaryHtml;
+                    
+                    // 显示最近调用记录
+                    let recentHtml = '';
+                    if (recentCalls.length === 0) {
+                        recentHtml = '<p style="text-align:center;color:#999;">暂无调用记录</p>';
+                    } else {
+                        recentCalls.forEach(call => {
+                            const date = new Date(call.created_at * 1000).toLocaleString('zh-CN');
+                            const currency = call.provider === 'gemini' ? 'USD' : 'CNY';
+                            recentHtml += `
+                                <div style="background:#f9fafb;padding:10px;margin-bottom:8px;border-radius:5px;font-size:13px;">
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                                        <span style="font-weight:600;color:#333;">${call.provider} / ${call.model}</span>
+                                        <span style="color:#888;">${date}</span>
+                                    </div>
+                                    <div style="color:#666;">
+                                        Token: ${call.input_tokens}/${call.output_tokens}/${call.total_tokens} | 
+                                        成本: ${call.estimated_cost.toFixed(6)} ${currency} | 
+                                        文章: ${call.article_count} 篇
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    document.getElementById('aiStatsRecent').innerHTML = recentHtml;
+                    
+                    document.getElementById('aiStatsLoading').style.display = 'none';
+                    document.getElementById('aiStatsContainer').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Failed to load AI stats:', error);
+                document.getElementById('aiStatsLoading').textContent = '加载失败';
+            }
+        }
+
+        // Initialize
+        loadStats();
+        loadFeeds();
+        loadAISettings();
+        loadAIStats();
+        updateInitModeHint();
+        setInterval(loadStats, 30000); // Refresh stats every 30 seconds
+        setInterval(loadAIStats, 60000); // Refresh AI stats every 60 seconds
+    </script>
+</body>
+
+</html>

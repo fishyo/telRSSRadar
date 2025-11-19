@@ -1,7 +1,14 @@
 const Parser = require("rss-parser");
-const { feeds, articles, filters, settings } = require("./database");
-const { escapeMarkdown, truncate } = require("./utils");
+const { feeds, articles, settings, filters } = require("./database");
+const {
+  escapeMarkdown,
+  truncate,
+  htmlToTelegraph,
+  createTelegraphPage,
+} = require("./utils");
 const logger = require("./logger");
+const AISummaryService = require('./aiSummary');
+const { RSS } = require('./constants');
 
 const parser = new Parser({
   timeout: 10000,
@@ -15,6 +22,7 @@ class RSSChecker {
     this.bot = bot;
     this.chatId = chatId;
     this.errorHandler = errorHandler;
+    this.aiSummary = new AISummaryService();
   }
 
   // 检查文章是否匹配过滤规则
@@ -47,7 +55,7 @@ class RSSChecker {
   }
 
   // 格式化文章为 Markdown
-  async formatArticle(article, feedTitle) {
+  async formatArticle(article, feedTitle, telegraphUrl) {
     const title = escapeMarkdown(article.title || "无标题");
     const link = article.link || "";
     const snippet = truncate(
@@ -56,32 +64,93 @@ class RSSChecker {
     );
     const description = escapeMarkdown(snippet);
 
-    // 直接返回文章链接
-    return `📰 *${title}*\n\n${description}\n\n🔗 [阅读原文](${link})\n📡 来源: ${escapeMarkdown(
-      feedTitle
-    )}`;
+    let message = `📰 *${title}*\n\n${description}\n\n`;
+
+    if (telegraphUrl) {
+      message += `📄 [Telegraph 预览](${telegraphUrl})\n`;
+    }
+
+    message += `🔗 [阅读原文](${link})\n📡 来源: ${escapeMarkdown(feedTitle)}`;
+
+    return message;
   }
 
   // 初次添加 RSS 源时拉取最新 10 条文章
-  async fetchInitialArticles(feedId, feedUrl) {
+  // 预览 RSS 源（不保存到数据库）
+  async previewFeed(feedUrl) {
     try {
       const feed = await parser.parseURL(feedUrl);
-      const items = feed.items.slice(0, 10);
+      const articles = feed.items.slice(0, RSS.PREVIEW_ARTICLE_COUNT).map(item => ({
+        title: item.title,
+        link: item.link,
+        pubDate: item.pubDate
+      }));
 
-      for (const item of items) {
-        const publishedAt = item.pubDate
-          ? Math.floor(new Date(item.pubDate).getTime() / 1000)
-          : Math.floor(Date.now() / 1000);
-        articles.add.run(
-          feedId,
-          item.guid || item.link || item.title,
-          item.title,
-          item.link,
-          publishedAt
-        );
+      return {
+        title: feed.title || '未命名源',
+        articles
+      };
+    } catch (error) {
+      throw new Error('无法解析 RSS 源: ' + error.message);
+    }
+  }
+
+  async fetchInitialArticles(feedId, feedUrl, pushLatest = false, pushCount = 5) {
+    try {
+      const feed = await parser.parseURL(feedUrl);
+      
+      if (pushLatest) {
+        // 推送模式：只推送指定数量的最新文章，不记录到数据库
+        const itemsToPush = feed.items.slice(0, pushCount);
+        const articlesToPush = [];
+        
+        for (const item of itemsToPush) {
+          const publishedAt = item.pubDate
+            ? Math.floor(new Date(item.pubDate).getTime() / 1000)
+            : Math.floor(Date.now() / 1000);
+          
+          articlesToPush.push({
+            guid: item.guid || item.link || item.title,
+            title: item.title,
+            link: item.link,
+            publishedAt
+          });
+          
+          // 记录到数据库以避免下次重复推送
+          articles.add.run(
+            feedId,
+            item.guid || item.link || item.title,
+            item.title,
+            item.link,
+            publishedAt
+          );
+        }
+        
+        // 立即推送文章
+        if (articlesToPush.length > 0) {
+          await this.pushArticles(articlesToPush, feed.title, feedId);
+        }
+        
+        return { success: true, title: feed.title, count: articlesToPush.length, pushed: true };
+      } else {
+        // 记录模式：记录最新 N 篇但不推送
+        const items = feed.items.slice(0, RSS.INITIAL_ARTICLE_COUNT);
+
+        for (const item of items) {
+          const publishedAt = item.pubDate
+            ? Math.floor(new Date(item.pubDate).getTime() / 1000)
+            : Math.floor(Date.now() / 1000);
+          articles.add.run(
+            feedId,
+            item.guid || item.link || item.title,
+            item.title,
+            item.link,
+            publishedAt
+          );
+        }
+
+        return { success: true, title: feed.title, count: items.length, pushed: false };
       }
-
-      return { success: true, title: feed.title, count: items.length };
     } catch (error) {
       throw error;
     }
@@ -129,6 +198,8 @@ class RSSChecker {
             title: item.title,
             link: item.link,
             contentSnippet: item.contentSnippet || item.content,
+            content:
+              item.content || item["content:encoded"] || item.contentSnippet, // 确保传递内容
             pubDate: item.pubDate,
           });
         }
@@ -142,7 +213,7 @@ class RSSChecker {
           liveTitle: liveTitle,
           finalTitle: finalTitle,
         });
-        await this.pushArticles(newArticles, finalTitle);
+        await this.pushArticles(newArticles, finalTitle, feedId);
       }
 
       feeds.updateLastCheck.run(Math.floor(Date.now() / 1000), feedId);
@@ -160,10 +231,74 @@ class RSSChecker {
   }
 
   // 推送文章到 Telegram
-  async pushArticles(articles, feedTitle) {
+  async pushArticles(articles, feedTitle, feedId = null) {
+    // 检查该订阅源是否启用 AI 总结
+    let aiEnabled = false;
+    if (feedId) {
+      const feed = feeds.getById.get(feedId);
+      aiEnabled = feed && feed.ai_summary_enabled === 1;
+    }
+    
+    // 检查文章数量是否达到最小要求
+    const minArticles = parseInt(settings.get.get('ai_min_articles')?.value || '3');
+    const hasEnoughArticles = articles.length >= minArticles;
+    
+    // 尝试生成 AI 总结 (仅当该源启用且文章数量足够时)
+    let summaryData = null;
+    if (aiEnabled && hasEnoughArticles) {
+      // 传递 skipGlobalCheck=true,因为我们已经在订阅源级别检查了
+      summaryData = await this.aiSummary.summarize(articles, feedTitle, true);
+    } else if (aiEnabled && !hasEnoughArticles) {
+      console.log(`⏭️  跳过 AI 总结: ${feedTitle} (${articles.length} 篇 < ${minArticles} 篇最小要求)`);
+    }
+    
+    if (summaryData) {
+      try {
+        const summaryMessage = this.aiSummary.formatSummaryMessage(summaryData, articles);
+        await this.bot.telegram.sendMessage(this.chatId, summaryMessage, {
+          parse_mode: "Markdown",
+          disable_web_page_preview: true,
+        });
+        console.log(`📊 已推送 AI 总结: ${feedTitle} (${articles.length} 篇文章)`);
+        // AI 总结后直接返回,不再推送原文
+        return;
+      } catch (error) {
+        console.error("Failed to push AI summary:", error);
+        console.log(`⚠️  AI 总结推送失败,继续推送原文`);
+      }
+    }
+
+    // 获取 token
+    const tokenResult = settings.get.get("telegraph_token");
+    const telegraphToken = tokenResult ? tokenResult.value : null;
+
     for (const article of articles) {
       try {
-        const message = await this.formatArticle(article, feedTitle);
+        let telegraphUrl = null;
+
+        // 尝试创建 Telegraph 页面
+        if (telegraphToken && article.content) {
+          try {
+            const nodes = htmlToTelegraph(article.content);
+            if (nodes.length > 0) {
+              telegraphUrl = await createTelegraphPage(
+                telegraphToken,
+                article.title || "无标题",
+                nodes,
+                feedTitle,
+                article.link
+              );
+            }
+          } catch (err) {
+            console.error("Failed to create Telegraph page:", err);
+          }
+        }
+
+        const message = await this.formatArticle(
+          article,
+          feedTitle,
+          telegraphUrl
+        );
 
         await this.bot.telegram.sendMessage(this.chatId, message, {
           parse_mode: "MarkdownV2",
