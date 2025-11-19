@@ -7,6 +7,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    ports:
+      # Web 管理面板端口映射 (主机端口:容器端口)
+      # 如需修改主机端口，请同时修改 .env 文件中的 WEB_PORT
+      - "${WEB_PORT:-3000}:${WEB_PORT:-3000}"
     volumes:
       # 持久化数据库文件
       - ./data:/app/data
