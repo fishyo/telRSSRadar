@@ -158,6 +158,8 @@ npm start
 
 ### Telegram 命令列表
 
+### 使用 /help 或 /start 获取帮助
+
 #### 📚 订阅源管理
 
 ```
@@ -252,26 +254,6 @@ npm start
 | `DEEPSEEK_API_KEY` | ❌   | -      | DeepSeek API Key            |
 | `QWEN_API_KEY`     | ❌   | -      | Qwen API Key                |
 
-### AI 服务配置
-
-#### Google Gemini (推荐)
-
-- **免费额度**: 每天 1500 次请求
-- **模型**: gemini-2.0-flash-exp
-- **获取方式**: [Google AI Studio](https://aistudio.google.com/app/apikey)
-
-#### DeepSeek
-
-- **价格**: ¥1/百万 输入 tokens, ¥2/百万 输出 tokens
-- **模型**: deepseek-chat
-- **获取方式**: [DeepSeek 官网](https://platform.deepseek.com/)
-
-#### Qwen (通义千问)
-
-- **价格**: ¥0.5/百万 输入 tokens, ¥2/百万 输出 tokens
-- **模型**: qwen-plus
-- **获取方式**: [阿里云百炼](https://bailian.console.aliyun.com/)
-
 ### 系统设置
 
 - **检查间隔**: 建议 5-15 分钟，避免过于频繁
@@ -286,11 +268,10 @@ npm start
 ### 使用 Docker Compose (推荐)
 
 ```yaml
-version: "3.8"
 services:
-  telegram-rss-bot:
+  telRSSRadar:
     build: .
-    container_name: telegram-rss-bot
+    container_name: telrssradar
     restart: unless-stopped
     environment:
       - BOT_TOKEN=your_bot_token

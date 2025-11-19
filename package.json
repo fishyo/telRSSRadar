@@ -1,7 +1,7 @@
 {
-  "name": "telegramrss",
+  "name": "telrssradar",
   "version": "1.0.0",
-  "description": "Telegram RSS Bot - Single user RSS feed manager with keyword filtering",
+  "description": "telRSSRadar - Telegram RSS Bot with AI summary and keyword filtering",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
