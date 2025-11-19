@@ -115,7 +115,9 @@ async function main() {
       console.log(`🌐 Web 管理面板已启动: http://localhost:${webPort}`);
       if (webHost === "0.0.0.0") {
         console.log(`🌍 局域网访问已启用: http://<服务器IP>:${webPort}`);
-        console.log(`⚠️  安全警告: Web 面板可被局域网内所有设备访问，请注意安全！`);
+        console.log(
+          `⚠️  安全警告: Web 面板可被局域网内所有设备访问，请注意安全！`
+        );
       } else {
         console.log(`🔒 安全提示: Web 面板仅监听本地回环地址，外部无法访问`);
       }

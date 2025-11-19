@@ -1,4 +1,4 @@
-# 📡 Telegram RSS Bot
+# 📡 telRSSRadar
 
 <div align="center">
 
@@ -16,7 +16,9 @@
 
 ## 📖 服务介绍
 
-Telegram RSS Bot 是一个专为个人或小团队设计的 RSS 订阅管理工具，通过 Telegram 机器人提供便捷的订阅源管理和内容推送服务。
+- telRSSRadar 是一个专为个人或小团队设计的 RSS 订阅管理工具，通过 Telegram 机器人提供便捷的订阅源管理和内容推送服务。
+- 本服务由 AI 编写，本人无任何 debug 能力，欢迎喜欢的大神一起完善功能
+- 因为我最爱的 classic reeder 作者已经将重心转移到新的 app 上，很多功能和 bug 在 iOS 没有得到积极的维护。目前又没有特别喜欢的 Rss app，随意在大脑里编制出了这个东西让 ai 来帮我实现
 
 ### 核心优势
 
