@@ -1,5 +1,5 @@
-# 使用 Node.js 18 LTS 版本
-FROM node:18-alpine
+# 使用 Node.js 24 LTS 版本
+FROM node:24-alpine
 
 # 安装构建工具（用于编译 better-sqlite3）
 RUN apk add --no-cache python3 make g++

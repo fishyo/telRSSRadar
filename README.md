@@ -3,7 +3,7 @@
 <div align="center">
 
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://telegram.org/)
 
 一个功能强大的 Telegram RSS 订阅机器人，支持 AI 智能总结、关键词过滤、批量管理等功能。
@@ -98,8 +98,8 @@ Telegram RSS Bot 是一个专为个人或小团队设计的 RSS 订阅管理工�
 
 ### 环境要求
 
-- **Node.js** >= 18.0.0
-- **npm** 或 **yarn**
+- **Node.js** >= 24.0.0 (LTS)
+- **npm** >= 10.0.0
 - **Telegram Bot Token** ([获取教程](https://core.telegram.org/bots#3-how-do-i-create-a-bot))
 - **Telegram Chat ID** ([获取方法](https://stackoverflow.com/questions/32423837/telegram-bot-how-to-get-a-group-chat-id))
 
@@ -312,7 +312,7 @@ docker-compose up -d
 ### Dockerfile
 
 ```dockerfile
-FROM node:18-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
