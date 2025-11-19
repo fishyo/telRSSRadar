@@ -109,10 +109,16 @@ async function main() {
 
     // 启动 Web 服务器
     const webPort = process.env.WEB_PORT || 3000;
+    const webHost = process.env.WEB_HOST || "127.0.0.1"; // 默认仅本地访问，设置为 0.0.0.0 允许局域网访问
     const app = createWebServer(bot, process.env.CHAT_ID, errorHandler);
-    app.listen(webPort, "127.0.0.1", () => {
+    app.listen(webPort, webHost, () => {
       console.log(`🌐 Web 管理面板已启动: http://localhost:${webPort}`);
-      console.log(`🔒 安全提示: Web 面板仅监听本地回环地址，外部无法访问`);
+      if (webHost === "0.0.0.0") {
+        console.log(`🌍 局域网访问已启用: http://<服务器IP>:${webPort}`);
+        console.log(`⚠️  安全警告: Web 面板可被局域网内所有设备访问，请注意安全！`);
+      } else {
+        console.log(`🔒 安全提示: Web 面板仅监听本地回环地址，外部无法访问`);
+      }
       console.log(
         `🔐 数据库文件位置: ${require("path").join(
           __dirname,
