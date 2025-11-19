@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const { feeds, articles, filters, settings } = require("./database");
 const RSSChecker = require("./rssChecker");
+const logger = require("./logger");
 
 function createWebServer(bot, chatId, errorHandler) {
   const app = express();
@@ -419,6 +420,27 @@ function createWebServer(bot, chatId, errorHandler) {
     }
   });
 
+  // API: 获取日志
+  app.get("/api/logs", (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 100;
+      const logs = logger.getLogs(limit);
+      res.json({ success: true, data: logs });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API: 清空日志
+  app.post("/api/logs/clear", (req, res) => {
+    try {
+      logger.clearLogs();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // API: 手动清理（按数量）
   app.post("/api/cleanup/count", async (req, res) => {
     try {
@@ -510,6 +532,20 @@ function createWebServer(bot, chatId, errorHandler) {
       }
 
       res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API: 删除 AI API Key
+  app.delete("/api/ai-settings/apikey/:provider", (req, res) => {
+    try {
+      const { provider } = req.params;
+      const keyName = `ai_api_key_${provider}`;
+
+      settings.delete.run(keyName);
+
+      res.json({ success: true, message: `已删除 ${provider} 的 API Key` });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }

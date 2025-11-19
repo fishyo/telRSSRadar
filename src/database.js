@@ -198,6 +198,7 @@ const filtersDb = {
 const settingsDb = {
   get: db.prepare("SELECT value FROM settings WHERE key = ?"),
   set: db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)"),
+  delete: db.prepare("DELETE FROM settings WHERE key = ?"),
 };
 
 module.exports = {
