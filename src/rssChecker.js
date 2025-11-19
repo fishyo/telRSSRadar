@@ -7,8 +7,8 @@ const {
   createTelegraphPage,
 } = require("./utils");
 const logger = require("./logger");
-const AISummaryService = require('./aiSummary');
-const { RSS } = require('./constants');
+const AISummaryService = require("./aiSummary");
+const { RSS } = require("./constants");
 
 const parser = new Parser({
   timeout: 10000,
@@ -80,42 +80,49 @@ class RSSChecker {
   async previewFeed(feedUrl) {
     try {
       const feed = await parser.parseURL(feedUrl);
-      const articles = feed.items.slice(0, RSS.PREVIEW_ARTICLE_COUNT).map(item => ({
-        title: item.title,
-        link: item.link,
-        pubDate: item.pubDate
-      }));
+      const articles = feed.items
+        .slice(0, RSS.PREVIEW_ARTICLE_COUNT)
+        .map((item) => ({
+          title: item.title,
+          link: item.link,
+          pubDate: item.pubDate,
+        }));
 
       return {
-        title: feed.title || '未命名源',
-        articles
+        title: feed.title || "未命名源",
+        articles,
       };
     } catch (error) {
-      throw new Error('无法解析 RSS 源: ' + error.message);
+      throw new Error("无法解析 RSS 源: " + error.message);
     }
   }
 
-  async fetchInitialArticles(feedId, feedUrl, pushLatest = false, pushCount = 5) {
+  async fetchInitialArticles(
+    feedId,
+    feedUrl,
+    pushLatest = false,
+    pushCount = 5
+  ) {
     try {
       const feed = await parser.parseURL(feedUrl);
-      
+
       if (pushLatest) {
         // 推送模式：只推送指定数量的最新文章，不记录到数据库
         const itemsToPush = feed.items.slice(0, pushCount);
         const articlesToPush = [];
-        
+
         for (const item of itemsToPush) {
           const publishedAt = item.pubDate
             ? Math.floor(new Date(item.pubDate).getTime() / 1000)
             : Math.floor(Date.now() / 1000);
-          
+
           articlesToPush.push({
             guid: item.guid || item.link || item.title,
             title: item.title,
             link: item.link,
-            publishedAt
+            publishedAt,
           });
-          
+
           // 记录到数据库以避免下次重复推送
           articles.add.run(
             feedId,
@@ -125,13 +132,18 @@ class RSSChecker {
             publishedAt
           );
         }
-        
+
         // 立即推送文章
         if (articlesToPush.length > 0) {
           await this.pushArticles(articlesToPush, feed.title, feedId);
         }
-        
-        return { success: true, title: feed.title, count: articlesToPush.length, pushed: true };
+
+        return {
+          success: true,
+          title: feed.title,
+          count: articlesToPush.length,
+          pushed: true,
+        };
       } else {
         // 记录模式：记录最新 N 篇但不推送
         const items = feed.items.slice(0, RSS.INITIAL_ARTICLE_COUNT);
@@ -149,7 +161,12 @@ class RSSChecker {
           );
         }
 
-        return { success: true, title: feed.title, count: items.length, pushed: false };
+        return {
+          success: true,
+          title: feed.title,
+          count: items.length,
+          pushed: false,
+        };
       }
     } catch (error) {
       throw error;
@@ -238,28 +255,37 @@ class RSSChecker {
       const feed = feeds.getById.get(feedId);
       aiEnabled = feed && feed.ai_summary_enabled === 1;
     }
-    
+
     // 检查文章数量是否达到最小要求
-    const minArticles = parseInt(settings.get.get('ai_min_articles')?.value || '3');
+    const minArticles = parseInt(
+      settings.get.get("ai_min_articles")?.value || "3"
+    );
     const hasEnoughArticles = articles.length >= minArticles;
-    
+
     // 尝试生成 AI 总结 (仅当该源启用且文章数量足够时)
     let summaryData = null;
     if (aiEnabled && hasEnoughArticles) {
       // 传递 skipGlobalCheck=true,因为我们已经在订阅源级别检查了
       summaryData = await this.aiSummary.summarize(articles, feedTitle, true);
     } else if (aiEnabled && !hasEnoughArticles) {
-      console.log(`⏭️  跳过 AI 总结: ${feedTitle} (${articles.length} 篇 < ${minArticles} 篇最小要求)`);
+      console.log(
+        `⏭️  跳过 AI 总结: ${feedTitle} (${articles.length} 篇 < ${minArticles} 篇最小要求)`
+      );
     }
-    
+
     if (summaryData) {
       try {
-        const summaryMessage = this.aiSummary.formatSummaryMessage(summaryData, articles);
+        const summaryMessage = this.aiSummary.formatSummaryMessage(
+          summaryData,
+          articles
+        );
         await this.bot.telegram.sendMessage(this.chatId, summaryMessage, {
           parse_mode: "Markdown",
           disable_web_page_preview: true,
         });
-        console.log(`📊 已推送 AI 总结: ${feedTitle} (${articles.length} 篇文章)`);
+        console.log(
+          `📊 已推送 AI 总结: ${feedTitle} (${articles.length} 篇文章)`
+        );
         // AI 总结后直接返回,不再推送原文
         return;
       } catch (error) {
@@ -351,6 +377,29 @@ class RSSChecker {
     } catch (error) {
       console.error("❌ 按数量清理旧文章失败:", error);
       return { success: false, error: error.message };
+    }
+  }
+
+  // 测试 RSS 源连接
+  async testFeed(url) {
+    try {
+      const feed = await parser.parseURL(url);
+
+      if (!feed || !feed.items) {
+        throw new Error("无效的 RSS 源");
+      }
+
+      const articleCount = feed.items.length;
+      const latestArticle = feed.items[0] ? feed.items[0].title : null;
+
+      return {
+        success: true,
+        title: feed.title,
+        articleCount: articleCount,
+        latestArticle: latestArticle,
+      };
+    } catch (error) {
+      throw new Error(error.message || "无法访问该 RSS 源");
     }
   }
 

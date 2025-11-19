@@ -1,7 +1,7 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
-const { DATA_RETENTION, AI } = require('./constants');
+const { DATA_RETENTION, AI } = require("./constants");
 
 const dataDir = path.join(__dirname, "..", "data");
 const dbPath = path.join(dataDir, "rss.db");
@@ -34,7 +34,7 @@ if (fs.existsSync(dbPath)) {
 const db = new Database(dbPath);
 
 // 启用 WAL 模式以提高性能和并发性
-db.pragma('journal_mode = WAL');
+db.pragma("journal_mode = WAL");
 
 console.log(`✅ 数据库已连接: ${dbPath}`);
 
@@ -80,22 +80,33 @@ db.exec(`
 // 数据库迁移: 添加 ai_summary_enabled 列(如果不存在)
 try {
   const columns = db.prepare("PRAGMA table_info(feeds)").all();
-  const hasAIColumn = columns.some(col => col.name === 'ai_summary_enabled');
+  const hasAIColumn = columns.some((col) => col.name === "ai_summary_enabled");
   if (!hasAIColumn) {
-    console.log('📝 添加 ai_summary_enabled 列到 feeds 表');
-    db.exec('ALTER TABLE feeds ADD COLUMN ai_summary_enabled INTEGER DEFAULT 0');
+    console.log("📝 添加 ai_summary_enabled 列到 feeds 表");
+    db.exec(
+      "ALTER TABLE feeds ADD COLUMN ai_summary_enabled INTEGER DEFAULT 0"
+    );
   }
 } catch (error) {
-  console.error('数据库迁移失败:', error);
+  console.error("数据库迁移失败:", error);
 }
 
 // 初始化默认设置
 const insertSetting = db.prepare(
   "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
 );
-insertSetting.run("check_interval", process.env.CHECK_INTERVAL || DATA_RETENTION.DEFAULT_CHECK_INTERVAL.toString());
-insertSetting.run("retention_days", process.env.RETENTION_DAYS || DATA_RETENTION.DEFAULT_DAYS.toString());
-insertSetting.run("retention_count", process.env.RETENTION_COUNT || DATA_RETENTION.DEFAULT_COUNT.toString());
+insertSetting.run(
+  "check_interval",
+  process.env.CHECK_INTERVAL || DATA_RETENTION.DEFAULT_CHECK_INTERVAL.toString()
+);
+insertSetting.run(
+  "retention_days",
+  process.env.RETENTION_DAYS || DATA_RETENTION.DEFAULT_DAYS.toString()
+);
+insertSetting.run(
+  "retention_count",
+  process.env.RETENTION_COUNT || DATA_RETENTION.DEFAULT_COUNT.toString()
+);
 insertSetting.run("ai_summary_enabled", "false");
 insertSetting.run("ai_provider", "gemini");
 insertSetting.run("ai_api_key_gemini", "");
@@ -109,7 +120,9 @@ insertSetting.run("ai_min_articles", AI.DEFAULT_MIN_ARTICLES.toString()); // 最
 // 输出数据库统计信息
 const feedCount = db.prepare("SELECT COUNT(*) as count FROM feeds").get();
 const articleCount = db.prepare("SELECT COUNT(*) as count FROM articles").get();
-console.log(`📊 当前统计: ${feedCount.count} 个订阅源, ${articleCount.count} 篇文章`);
+console.log(
+  `📊 当前统计: ${feedCount.count} 个订阅源, ${articleCount.count} 篇文章`
+);
 
 // Feeds 操作
 const feedsDb = {
@@ -122,7 +135,9 @@ const feedsDb = {
   updateLastCheck: db.prepare("UPDATE feeds SET last_check = ? WHERE id = ?"),
   updateErrorCount: db.prepare("UPDATE feeds SET error_count = ? WHERE id = ?"),
   resetErrorCount: db.prepare("UPDATE feeds SET error_count = 0 WHERE id = ?"),
-  updateAISummary: db.prepare("UPDATE feeds SET ai_summary_enabled = ? WHERE id = ?"),
+  updateAISummary: db.prepare(
+    "UPDATE feeds SET ai_summary_enabled = ? WHERE id = ?"
+  ),
   exportAll: db.prepare(`
     SELECT
       f.url,

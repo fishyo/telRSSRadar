@@ -110,10 +110,17 @@ async function main() {
     // 启动 Web 服务器
     const webPort = process.env.WEB_PORT || 3000;
     const app = createWebServer(bot, process.env.CHAT_ID, errorHandler);
-    app.listen(webPort, '127.0.0.1', () => {
+    app.listen(webPort, "127.0.0.1", () => {
       console.log(`🌐 Web 管理面板已启动: http://localhost:${webPort}`);
       console.log(`🔒 安全提示: Web 面板仅监听本地回环地址，外部无法访问`);
-      console.log(`🔐 数据库文件位置: ${require('path').join(__dirname, '..', 'data', 'rss.db')}`);
+      console.log(
+        `🔐 数据库文件位置: ${require("path").join(
+          __dirname,
+          "..",
+          "data",
+          "rss.db"
+        )}`
+      );
       console.log(`⚠️  请妥善保管数据库文件，其中包含 API Keys`);
     });
 

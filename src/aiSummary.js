@@ -225,7 +225,12 @@ class AISummaryService {
 3. 使用中文输出
 4. 总结不超过 500 字
 5. 使用简洁的段落格式，不要使用代码块
-6. 可以使用项目符号(•)或数字列表
+6. 每个要点使用 **粗体** 标记关键词或主题（格式：**关键词**：说明文字）
+7. 可以使用项目符号(•)或数字列表
+
+格式示例：
+• **市场动态**：今日股市上涨3%，科技板块领涨
+• **政策解读**：央行宣布降低存款准备金率0.5个百分点
 
 文章列表：
 ${articleList}
@@ -322,6 +327,8 @@ ${articleList}
         feedTitle,
         articleCount: articles.length,
         summary: text,
+        provider: providerConfig.name,
+        model: selectedModel,
         tokens: { inputTokens, outputTokens, totalTokens },
         cost: costData,
       };
@@ -332,7 +339,10 @@ ${articleList}
         const safeData = {
           status: error.response.status,
           statusText: error.response.statusText,
-          message: error.response.data?.error?.message || error.response.data?.message || '未知错误'
+          message:
+            error.response.data?.error?.message ||
+            error.response.data?.message ||
+            "未知错误",
         };
         console.error("响应信息:", safeData);
       }
@@ -342,7 +352,7 @@ ${articleList}
 
   // 格式化总结消息
   formatSummaryMessage(summaryData, articles = []) {
-    const { feedTitle, articleCount, summary } = summaryData;
+    const { feedTitle, articleCount, summary, provider, model } = summaryData;
 
     // 清理 AI 返回的 Markdown 代码块标记
     let cleanedSummary = summary
@@ -366,7 +376,9 @@ ${articleList}
       message += "\n";
     }
 
-    message += `_[由 AI 自动生成]_`;
+    // 显示AI提供商信息
+    const aiInfo = provider && model ? `${provider} (${model})` : 'AI';
+    message += `_[由 ${aiInfo} 自动生成]_`;
 
     return message;
   }

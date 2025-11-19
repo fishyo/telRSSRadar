@@ -455,7 +455,7 @@
             user-select: none;
         }
 
-        .ai-toggle input[type="checkbox"]:checked + .ai-toggle-label {
+        .ai-toggle input[type="checkbox"]:checked+.ai-toggle-label {
             color: #10b981;
         }
 
@@ -580,6 +580,25 @@
             padding: 10px 15px;
             border-radius: 5px;
             margin-bottom: 15px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
         }
 
         .message-success {
@@ -643,14 +662,16 @@
                     <button class="btn btn-secondary" onclick="previewFeed()" style="white-space:nowrap;">🔍 预览</button>
                 </div>
             </div>
-            
+
             <!-- 预览结果 -->
-            <div id="previewResult" style="display:none;margin-bottom:15px;padding:15px;background:#f8f9fa;border-radius:8px;border-left:4px solid #667eea;">
+            <div id="previewResult"
+                style="display:none;margin-bottom:15px;padding:15px;background:#f8f9fa;border-radius:8px;border-left:4px solid #667eea;">
                 <div style="font-weight:bold;margin-bottom:10px;color:#333;">📰 <span id="previewTitle">标题</span></div>
-                <div style="color:#666;font-size:14px;margin-bottom:10px;">最新 <span id="previewCount">0</span> 篇文章：</div>
+                <div style="color:#666;font-size:14px;margin-bottom:10px;">最新 <span id="previewCount">0</span> 篇文章：
+                </div>
                 <ul id="previewArticles" style="margin:0;padding-left:20px;max-height:200px;overflow-y:auto;"></ul>
             </div>
-            
+
             <div class="form-group">
                 <label for="initMode">初始化方式</label>
                 <select id="initMode" onchange="updateInitModeHint()">
@@ -660,17 +681,19 @@
                     <option value="push-5" selected>推送最新 5 篇文章</option>
                     <option value="push-10">推送最新 10 篇文章</option>
                 </select>
-                <small id="initModeHint" style="color:#666;margin-top:5px;display:block;">💡 推送模式会立即发送最新文章到 Telegram</small>
+                <small id="initModeHint" style="color:#666;margin-top:5px;display:block;">💡 推送模式会立即发送最新文章到
+                    Telegram</small>
             </div>
-            
+
             <div class="form-group">
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                     <input type="checkbox" id="enableAI" style="width:auto;">
                     <span>🤖 启用 AI 总结</span>
                 </label>
-                <small style="color:#666;margin-top:5px;display:block;">💡 开启后，该订阅源的更新将会自动生成 AI 总结（需配置 AI API Key）</small>
+                <small style="color:#666;margin-top:5px;display:block;">💡 开启后，该订阅源的更新将会自动生成 AI 总结（需配置 AI API
+                    Key）</small>
             </div>
-            
+
             <button class="btn btn-primary" onclick="addFeed()">添加订阅</button>
         </div>
 
@@ -691,6 +714,56 @@
                 </div>
             </div>
             <div class="section-content" id="feedsContent">
+                <!-- 消息显示区域 -->
+                <div id="feedsMessage" class="message" style="display: none;"></div>
+
+                <!-- 批量管理工具栏 -->
+                <div
+                    style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">🔧 批量管理</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                        <button class="btn btn-warning" onclick="checkErrorFeeds()" title="检查所有订阅源的连通性">
+                            🔍 检查错误源
+                        </button>
+                        <button class="btn btn-danger" onclick="batchDeleteFeeds()" title="批量删除选中的订阅源"
+                            id="batchDeleteBtn" disabled>
+                            🗑️ 批量删除 (<span id="selectedCount">0</span>)
+                        </button>
+                        <button class="btn btn-secondary" onclick="selectAllFeeds()" title="全选/取消全选" id="selectAllBtn">
+                            ☑️ 全选
+                        </button>
+                        <button class="btn btn-secondary" onclick="selectErrorFeeds()" title="选择所有错误源"
+                            id="selectErrorBtn" style="display: none;">
+                            ❌ 选择错误源
+                        </button>
+                    </div>
+                    <small style="display: block; color: #666;">
+                        检查错误源将测试所有订阅源的连通性,可能需要较长时间
+                    </small>
+                </div>
+
+                <!-- 导入导出工具 -->
+                <div
+                    style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">📦 导入/导出订阅源</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="exportFeeds('json')" title="导出为 JSON 格式">
+                            📥 导出 JSON
+                        </button>
+                        <button class="btn btn-primary" onclick="exportFeeds('opml')" title="导出为 OPML 格式">
+                            📥 导出 OPML
+                        </button>
+                        <label class="btn btn-success" style="margin: 0; cursor: pointer;">
+                            📤 导入文件
+                            <input type="file" id="importFile" accept=".json,.opml,.xml" style="display: none;"
+                                onchange="importFeeds()">
+                        </label>
+                    </div>
+                    <small style="display: block; color: #666; margin-top: 8px;">
+                        支持 JSON 和 OPML 格式,导入时会自动检测格式并跳过重复的订阅源
+                    </small>
+                </div>
+
                 <div id="feedsLoading" class="loading">加载中...</div>
                 <ul id="feedsList" class="feed-list"></ul>
             </div>
@@ -704,7 +777,7 @@
             </div>
             <div class="section-content" id="settingsContent">
                 <div id="settingsMessage"></div>
-                
+
                 <!-- 数据库信息卡片 -->
                 <div class="status-card" style="margin-bottom: 20px;">
                     <div class="status-header">
@@ -732,7 +805,7 @@
                 </div>
 
                 <h3 style="margin-top:20px;margin-bottom:15px;color:#333;font-size:16px;">⚙️ 运行参数</h3>
-                
+
                 <div class="settings-grid">
                     <div class="form-group">
                         <label for="settingInterval">检查间隔 (分钟)</label>
@@ -750,9 +823,9 @@
                         <small style="display:block;color:#666;margin-top:5px;">每个订阅源最多保留的文章数量</small>
                     </div>
                 </div>
-                
+
                 <h3 style="margin-top:25px;margin-bottom:15px;color:#333;font-size:16px;">🛠️ 操作</h3>
-                
+
                 <div class="action-buttons">
                     <button class="btn btn-success" onclick="saveSettings()">💾 保存设置</button>
                     <button class="btn btn-primary" onclick="manualCheck()">🔄 手动检查更新</button>
@@ -770,26 +843,29 @@
             </div>
             <div class="section-content" id="aiContent">
                 <div id="aiMessage"></div>
-                
+
                 <!-- 全局开关 -->
-                <div class="status-card" style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="status-card"
+                    style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <div class="status-header" style="border-bottom-color: rgba(255,255,255,0.2);">
                         <span class="status-title" style="color: white; font-weight: bold;">🎛️ 全局开关</span>
                     </div>
                     <div class="status-body">
                         <div style="padding: 10px 0;">
                             <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
-                                <input type="checkbox" id="aiEnabled" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                                <input type="checkbox" id="aiEnabled"
+                                    style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
                                 <span style="font-weight: bold;">启用 AI 总结功能</span>
                             </label>
-                            <small style="display:block; color: rgba(255,255,255,0.9); margin-top: 8px; padding-left: 30px; line-height: 1.5;">
+                            <small
+                                style="display:block; color: rgba(255,255,255,0.9); margin-top: 8px; padding-left: 30px; line-height: 1.5;">
                                 ✓ 全局开关启用后，还需在订阅源管理中为每个源单独开启 AI 总结<br>
                                 ✓ 单次更新文章数量需达到最少文章数量阈值才会触发 AI 总结
                             </small>
                         </div>
                     </div>
                 </div>
-            
+
                 <!-- AI 配置状态 -->
                 <div id="aiStatusCard" class="status-card" style="margin-bottom: 20px;">
                     <div class="status-header">
@@ -834,7 +910,8 @@
                     <label for="aiApiKey">API Key</label>
                     <div style="display:flex;gap:10px;align-items:center;">
                         <input type="password" id="aiApiKey" placeholder="输入 API Key" style="flex:1;">
-                        <button class="btn btn-small" onclick="toggleApiKeyVisibility()" id="toggleKeyBtn" title="显示/隐藏">
+                        <button class="btn btn-small" onclick="toggleApiKeyVisibility()" id="toggleKeyBtn"
+                            title="显示/隐藏">
                             👁️
                         </button>
                         <button class="btn btn-small btn-danger" onclick="clearApiKey()" title="清除 Key">
@@ -870,15 +947,17 @@
                     <button class="btn btn-success" onclick="saveAISettings()">💾 保存 AI 设置</button>
                     <button class="btn btn-primary" onclick="testAIConnection()" id="testAIBtn">🔌 测试连接</button>
                 </div>
-                
+
                 <!-- API Key 获取帮助 -->
-                <div id="apiKeyHelp" style="margin-top:20px;padding:15px;background:#f9fafb;border-radius:8px;border-left:4px solid #667eea;display:none;">
+                <div id="apiKeyHelp"
+                    style="margin-top:20px;padding:15px;background:#f9fafb;border-radius:8px;border-left:4px solid #667eea;display:none;">
                     <h4 style="margin:0 0 10px 0;color:#333;">📖 如何获取 API Key</h4>
                     <div id="helpContent"></div>
                 </div>
-                
+
                 <!-- 安全提示 -->
-                <div style="margin-top:20px;padding:15px;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
+                <div
+                    style="margin-top:20px;padding:15px;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
                     <h4 style="margin:0 0 10px 0;color:#92400e;display:flex;align-items:center;">
                         🔒 安全提示
                     </h4>
@@ -890,8 +969,8 @@
                     </ul>
                     <details style="margin-top:10px;">
                         <summary style="cursor:pointer;color:#92400e;font-weight:500;">查看详细安全说明</summary>
-                        <div style="margin-top:10px;padding:10px;background:white;border-radius:4px;font-size:13px;color:#666;">
-                            <p style="margin:5px 0;"><strong>存储位置:</strong> data/rss.db (SQLite 数据库)</p>
+                        <div
+                            style="margin-top:10px;padding:10px;background:white;border-radius:4px;font-size:13px;color:#666;">
                             <p style="margin:5px 0;"><strong>传输安全:</strong> API Key 通过 HTTPS 发送给 AI 提供商</p>
                             <p style="margin:5px 0;"><strong>显示安全:</strong> Web 界面永不显示完整 Key</p>
                             <p style="margin:5px 0;"><strong>日志安全:</strong> 错误日志已过滤敏感信息</p>
@@ -915,12 +994,12 @@
                 <button class="collapse-btn collapsed" onclick="toggleSection('stats')" title="折叠/展开">▼</button>
             </div>
             <div class="section-content collapsed" id="statsContent">
-            <div id="aiStatsLoading" class="loading">加载中...</div>
-            <div id="aiStatsContainer" style="display:none;">
-                <div id="aiStatsSummary" style="margin-bottom:20px;"></div>
-                <h3 style="margin-bottom:10px;color:#666;">最近调用记录</h3>
-                <div id="aiStatsRecent" style="max-height:300px;overflow-y:auto;"></div>
-            </div>
+                <div id="aiStatsLoading" class="loading">加载中...</div>
+                <div id="aiStatsContainer" style="display:none;">
+                    <div id="aiStatsSummary" style="margin-bottom:20px;"></div>
+                    <h3 style="margin-bottom:10px;color:#666;">最近调用记录</h3>
+                    <div id="aiStatsRecent" style="max-height:300px;overflow-y:auto;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -992,7 +1071,7 @@
                         document.getElementById('dbSize').textContent = db.sizeFormatted || '-';
                         document.getElementById('dbFeedCount').textContent = result.data.feedCount;
                         document.getElementById('dbArticleCount').textContent = result.data.articleCount;
-                        
+
                         // 更新数据库状态徽章
                         const badge = document.getElementById('dbStatusBadge');
                         if (db.exists) {
@@ -1056,6 +1135,7 @@
             const li = document.createElement('li');
             li.className = 'feed-item' + (feed.error_count > 0 ? ' error' : '');
             li.dataset.feedId = feed.id;
+            li.dataset.hasError = feed.error_count > 0 ? 'true' : 'false';
 
             const articleCount = feedStatsMap.get(feed.id) || 0;
 
@@ -1070,10 +1150,15 @@
 
             li.innerHTML = `
                 <div class="feed-header" onclick="toggleFeedDetails(${feed.id})">
-                    <div class="feed-title">
-                        #${feed.id} ${feed.title || '未命名'}
-                        <span class="badge badge-info">${articleCount} 篇文章</span>
-                        ${feed.ai_summary_enabled ? '<span class="badge badge-success">🤖 AI</span>' : ''}
+                    <div class="feed-title" style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" class="feed-checkbox" data-feed-id="${feed.id}" 
+                               onclick="event.stopPropagation(); updateSelectedCount();" 
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                        <span>
+                            #${feed.id} ${feed.title || '未命名'}
+                            <span class="badge badge-info">${articleCount} 篇文章</span>
+                            ${feed.ai_summary_enabled ? '<span class="badge badge-success">🤖 AI</span>' : ''}
+                        </span>
                     </div>
                     <div class="feed-actions" onclick="event.stopPropagation();">
                         <label class="ai-toggle" title="${feed.ai_summary_enabled ? '禁用 AI 总结' : '启用 AI 总结'}">
@@ -1179,7 +1264,7 @@
         function toggleSection(sectionId) {
             const content = document.getElementById(sectionId + 'Content');
             const btn = event.target;
-            
+
             if (content.classList.contains('collapsed')) {
                 content.classList.remove('collapsed');
                 btn.classList.remove('collapsed');
@@ -1194,11 +1279,11 @@
             const sortValue = document.getElementById('feedSort').value;
             const feedsList = document.getElementById('feedsList');
             const items = Array.from(feedsList.children);
-            
+
             items.sort((a, b) => {
                 const [field, order] = sortValue.split('-');
                 let aVal, bVal;
-                
+
                 if (field === 'id') {
                     aVal = parseInt(a.dataset.feedId);
                     bVal = parseInt(b.dataset.feedId);
@@ -1211,14 +1296,14 @@
                     aVal = aBadge ? parseInt(aBadge.textContent) : 0;
                     bVal = bBadge ? parseInt(bBadge.textContent) : 0;
                 }
-                
+
                 if (order === 'asc') {
                     return aVal > bVal ? 1 : -1;
                 } else {
                     return aVal < bVal ? 1 : -1;
                 }
             });
-            
+
             feedsList.innerHTML = '';
             items.forEach(item => feedsList.appendChild(item));
         }
@@ -1227,7 +1312,7 @@
         function toggleSection(sectionId) {
             const content = document.getElementById(sectionId + 'Content');
             const btn = event.target;
-            
+
             if (content.classList.contains('collapsed')) {
                 content.classList.remove('collapsed');
                 btn.classList.remove('collapsed');
@@ -1242,11 +1327,11 @@
             const sortValue = document.getElementById('feedSort').value;
             const feedsList = document.getElementById('feedsList');
             const items = Array.from(feedsList.children);
-            
+
             items.sort((a, b) => {
                 const [field, order] = sortValue.split('-');
                 let aVal, bVal;
-                
+
                 if (field === 'id') {
                     aVal = parseInt(a.dataset.feedId);
                     bVal = parseInt(b.dataset.feedId);
@@ -1259,14 +1344,14 @@
                     aVal = aBadge ? parseInt(aBadge.textContent) : 0;
                     bVal = bBadge ? parseInt(bBadge.textContent) : 0;
                 }
-                
+
                 if (order === 'asc') {
                     return aVal > bVal ? 1 : -1;
                 } else {
                     return aVal < bVal ? 1 : -1;
                 }
             });
-            
+
             feedsList.innerHTML = '';
             items.forEach(item => feedsList.appendChild(item));
         }
@@ -1289,25 +1374,25 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url })
                 });
-                
+
                 // 检查响应是否成功
                 if (!response.ok) {
                     const result = await response.json();
                     showMessage('addMessage', '❌ ' + (result.error || '预览失败'), 'error');
                     return;
                 }
-                
+
                 const result = await response.json();
 
                 if (result.success) {
                     document.getElementById('previewTitle').textContent = result.data.title;
                     document.getElementById('previewCount').textContent = result.data.articles.length;
-                    
+
                     const articlesList = document.getElementById('previewArticles');
-                    articlesList.innerHTML = result.data.articles.map(article => 
+                    articlesList.innerHTML = result.data.articles.map(article =>
                         `<li style="margin-bottom:5px;"><a href="${article.link}" target="_blank" style="color:#667eea;text-decoration:none;">${article.title}</a></li>`
                     ).join('');
-                    
+
                     previewResult.style.display = 'block';
                     showMessage('addMessage', '✅ 预览加载成功', 'success');
                 } else {
@@ -1316,7 +1401,7 @@
             } catch (error) {
                 console.error('预览错误:', error);
                 let errorMsg = '预览失败';
-                
+
                 if (error.message === 'Failed to fetch') {
                     errorMsg = '无法连接到服务器，请确保服务正在运行 (http://localhost:3000)';
                 } else if (error.name === 'TypeError') {
@@ -1324,7 +1409,7 @@
                 } else {
                     errorMsg += ': ' + error.message;
                 }
-                
+
                 showMessage('addMessage', '❌ ' + errorMsg, 'error');
             }
         }
@@ -1333,7 +1418,7 @@
         function updateInitModeHint() {
             const initMode = document.getElementById('initMode').value;
             const hint = document.getElementById('initModeHint');
-            
+
             if (initMode === 'record') {
                 hint.textContent = '💾 仅记录文章到数据库，不会推送到 Telegram';
             } else {
@@ -1363,8 +1448,8 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    const message = result.data.pushed 
-                        ? `✅ 添加成功: ${result.data.title} (已推送 ${result.data.articleCount} 篇最新文章)` 
+                    const message = result.data.pushed
+                        ? `✅ 添加成功: ${result.data.title} (已推送 ${result.data.articleCount} 篇最新文章)`
                         : `✅ 添加成功: ${result.data.title} (已记录 ${result.data.articleCount} 篇文章)`;
                     showMessage('addMessage', message, 'success');
                     document.getElementById('feedUrl').value = '';
@@ -1613,10 +1698,10 @@
                     }
                     document.getElementById('aiModel').value = result.data.model || '';
                     document.getElementById('aiMinArticles').value = result.data.minArticles || 3;
-                    
+
                     // 更新状态卡片
                     updateAIStatusCard(result.data);
-                    
+
                     // 更新 API Key 信息显示
                     updateApiKeyInfo(result.data.apiKey, result.data.provider);
                 }
@@ -1669,7 +1754,7 @@
             const provider = document.getElementById('aiProvider').value;
             const helpDiv = document.getElementById('apiKeyHelp');
             const helpContent = document.getElementById('helpContent');
-            
+
             // 先保存提供商选择
             try {
                 await fetch('/api/ai-settings', {
@@ -1682,7 +1767,7 @@
             } catch (error) {
                 console.error('Failed to update provider:', error);
             }
-            
+
             const helpTexts = {
                 'gemini': `
                     <p><strong>Google Gemini API Key 获取步骤:</strong></p>
@@ -1717,10 +1802,10 @@
                     <p style="color:#666;font-size:13px;">💰 千问定价: 输入 ¥0.5/M tokens, 输出 ¥2/M tokens</p>
                 `
             };
-            
+
             helpContent.innerHTML = helpTexts[provider] || '';
             helpDiv.style.display = 'block';
-            
+
             // 更新模型提示
             const modelHints = {
                 'gemini': 'Gemini: gemini-2.0-flash-exp (推荐) | gemini-pro',
@@ -1735,17 +1820,17 @@
             const provider = document.getElementById('aiProvider').value;
             const apiKey = document.getElementById('aiApiKey').value.trim();
             const model = document.getElementById('aiModel').value.trim();
-            
+
             if (!apiKey || apiKey.startsWith('***')) {
                 showMessage('aiMessage', '⚠️ 请先输入 API Key', 'error');
                 return;
             }
-            
+
             const testBtn = document.getElementById('testAIBtn');
             const originalText = testBtn.textContent;
             testBtn.disabled = true;
             testBtn.textContent = '⏳ 测试中...';
-            
+
             try {
                 // 先保存设置
                 const saveResponse = await fetch('/api/ai-settings', {
@@ -1753,11 +1838,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: true, provider, apiKey, model })
                 });
-                
+
                 if (!saveResponse.ok) {
                     throw new Error('保存设置失败');
                 }
-                
+
                 // 这里可以添加实际的测试 API 调用
                 // 由于我们没有专门的测试端点，暂时只检查保存是否成功
                 showMessage('aiMessage', '✅ API Key 已保存，将在下次 RSS 检查时测试实际连接', 'success');
@@ -1787,10 +1872,10 @@
             // 更新状态显示
             const hasApiKey = aiSettings.apiKey && aiSettings.apiKey !== '';
             const isGlobalEnabled = aiSettings.enabled;
-            
+
             // 全局状态
             document.getElementById('aiGlobalStatus').textContent = isGlobalEnabled ? '✅ 已启用' : '❌ 已禁用';
-            
+
             // 提供商
             const providerNames = {
                 'gemini': 'Google Gemini',
@@ -1798,13 +1883,13 @@
                 'qwen': '通义千问'
             };
             document.getElementById('aiProviderStatus').textContent = providerNames[aiSettings.provider] || aiSettings.provider;
-            
+
             // API Key 状态
             document.getElementById('aiKeyStatus').textContent = hasApiKey ? '✅ 已配置' : '❌ 未配置';
-            
+
             // 已启用源数
             document.getElementById('aiEnabledFeedsCount').textContent = `${enabledFeedsCount} 个`;
-            
+
             // 整体状态徽章
             const statusBadge = document.getElementById('aiStatusBadge');
             if (isGlobalEnabled && hasApiKey && enabledFeedsCount > 0) {
@@ -1834,7 +1919,7 @@
                     body: JSON.stringify({ enabled, provider, apiKey, model, minArticles })
                 });
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showMessage('aiMessage', '✅ AI 设置已保存', 'success');
                     loadAISettings(); // 重新加载以更新状态卡片
@@ -1852,16 +1937,16 @@
             try {
                 document.getElementById('aiStatsLoading').style.display = 'block';
                 document.getElementById('aiStatsContainer').style.display = 'none';
-                
+
                 const response = await fetch('/api/ai-stats?days=30');
                 const result = await response.json();
-                
+
                 if (result.success) {
                     const { summary, recentCalls } = result.data;
-                    
+
                     // 显示汇总统计
                     let summaryHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;">';
-                    
+
                     if (summary.length === 0) {
                         summaryHtml = '<p style="text-align:center;color:#999;">暂无使用记录</p>';
                     } else {
@@ -1882,7 +1967,7 @@
                     }
                     summaryHtml += '</div>';
                     document.getElementById('aiStatsSummary').innerHTML = summaryHtml;
-                    
+
                     // 显示最近调用记录
                     let recentHtml = '';
                     if (recentCalls.length === 0) {
@@ -1907,13 +1992,253 @@
                         });
                     }
                     document.getElementById('aiStatsRecent').innerHTML = recentHtml;
-                    
+
                     document.getElementById('aiStatsLoading').style.display = 'none';
                     document.getElementById('aiStatsContainer').style.display = 'block';
                 }
             } catch (error) {
                 console.error('Failed to load AI stats:', error);
                 document.getElementById('aiStatsLoading').textContent = '加载失败';
+            }
+        }
+
+        // Export feeds
+        async function exportFeeds(format) {
+            try {
+                const url = `/api/feeds/export/${format}`;
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `rss-feeds-${Date.now()}.${format === 'opml' ? 'opml' : 'json'}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showMessage('feedsMessage', `✅ 成功导出 ${format.toUpperCase()} 格式`, 'success');
+            } catch (error) {
+                showMessage('feedsMessage', `❌ 导出失败: ${error.message}`, 'error');
+            }
+        }
+
+        // Import feeds
+        async function importFeeds() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                let format = 'json';
+
+                // 自动检测格式
+                if (file.name.endsWith('.opml') || file.name.endsWith('.xml') || text.trim().startsWith('<?xml')) {
+                    format = 'opml';
+                }
+
+                const response = await fetch('/api/feeds/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: text, format })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const { added, skipped, errors } = result.data;
+                    let message = `✅ 导入完成: 新增 ${added} 个订阅源`;
+                    if (skipped > 0) message += `, 跳过 ${skipped} 个重复`;
+                    if (errors.length > 0) message += `, ${errors.length} 个错误`;
+
+                    showMessage('feedsMessage', message, added > 0 ? 'success' : 'info');
+
+                    // 显示错误详情（如果有）
+                    if (errors.length > 0) {
+                        console.error('Import errors:', errors);
+                    }
+
+                    // 刷新列表
+                    if (added > 0) {
+                        await loadFeeds();
+                        await loadStats();
+                    }
+                } else {
+                    showMessage('feedsMessage', `❌ 导入失败: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('feedsMessage', `❌ 导入失败: ${error.message}`, 'error');
+            } finally {
+                // 清空文件选择
+                fileInput.value = '';
+            }
+        }
+
+        // Show message helper
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            if (!el) {
+                // 如果消息元素不存在，在订阅源列表上方创建一个
+                const feedsContent = document.getElementById('feedsContent');
+                const msgDiv = document.createElement('div');
+                msgDiv.id = elementId;
+                msgDiv.style.marginBottom = '15px';
+                feedsContent.insertBefore(msgDiv, feedsContent.firstChild);
+            }
+
+            const msgEl = document.getElementById(elementId);
+            msgEl.textContent = message;
+            msgEl.className = `message ${type}`;
+            msgEl.style.display = 'block';
+
+            setTimeout(() => {
+                msgEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // 批量管理功能
+        let errorFeedIds = new Set(); // 存储错误源的ID
+
+        // 更新选中数量
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.feed-checkbox');
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            document.getElementById('selectedCount').textContent = checkedCount;
+            document.getElementById('batchDeleteBtn').disabled = checkedCount === 0;
+        }
+
+        // 全选/取消全选
+        function selectAllFeeds() {
+            const checkboxes = document.querySelectorAll('.feed-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+            updateSelectedCount();
+            document.getElementById('selectAllBtn').textContent = allChecked ? '☑️ 全选' : '⬜ 取消全选';
+        }
+
+        // 选择所有错误源
+        function selectErrorFeeds() {
+            const checkboxes = document.querySelectorAll('.feed-checkbox');
+            checkboxes.forEach(cb => {
+                const feedId = parseInt(cb.dataset.feedId);
+                cb.checked = errorFeedIds.has(feedId);
+            });
+            updateSelectedCount();
+        }
+
+        // 检查错误源
+        async function checkErrorFeeds() {
+            if (!confirm('即将检查所有订阅源的连通性,这可能需要较长时间,是否继续?')) {
+                return;
+            }
+
+            const messageDiv = document.getElementById('feedsMessage');
+            showMessage('正在检查所有订阅源...', 'info', 'feedsMessage');
+
+            try {
+                const response = await fetch('/api/feeds/check-errors', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    const { total, ok, error, results } = result.data;
+
+                    // 保存错误源ID
+                    errorFeedIds.clear();
+                    results.forEach(r => {
+                        if (r.status === 'error') {
+                            errorFeedIds.add(r.id);
+                        }
+                    });
+
+                    // 显示结果
+                    let message = `检查完成! 总计 ${total} 个源, 正常 ${ok} 个, 错误 ${error} 个`;
+
+                    if (error > 0) {
+                        message += '\n\n错误源列表:\n';
+                        results.filter(r => r.status === 'error').forEach(r => {
+                            message += `\n#${r.id} ${r.title || '未命名'}\n错误: ${r.error}\n`;
+                        });
+
+                        // 显示"选择错误源"按钮
+                        document.getElementById('selectErrorBtn').style.display = 'inline-block';
+                        showMessage(`检查完成! 发现 ${error} 个错误源,点击"选择错误源"按钮快速选择`, 'error', 'feedsMessage');
+                    } else {
+                        document.getElementById('selectErrorBtn').style.display = 'none';
+                        showMessage('检查完成! 所有订阅源状态正常 ✅', 'success', 'feedsMessage');
+                    }
+
+                    // 在控制台输出详细结果
+                    console.log('订阅源检查结果:', results);
+
+                    // 标记错误的feed项
+                    results.forEach(r => {
+                        const feedItem = document.querySelector(`[data-feed-id="${r.id}"]`);
+                        if (feedItem) {
+                            if (r.status === 'error') {
+                                feedItem.classList.add('error');
+                                feedItem.dataset.hasError = 'true';
+                            } else {
+                                feedItem.classList.remove('error');
+                                feedItem.dataset.hasError = 'false';
+                            }
+                        }
+                    });
+                } else {
+                    showMessage('检查失败: ' + result.error, 'error', 'feedsMessage');
+                }
+            } catch (error) {
+                console.error('检查错误源失败:', error);
+                showMessage('检查失败: ' + error.message, 'error', 'feedsMessage');
+            }
+        }
+
+        // 批量删除订阅源
+        async function batchDeleteFeeds() {
+            const checkboxes = document.querySelectorAll('.feed-checkbox:checked');
+            const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.dataset.feedId));
+
+            if (selectedIds.length === 0) {
+                alert('请先选择要删除的订阅源');
+                return;
+            }
+
+            if (!confirm(`确定要删除选中的 ${selectedIds.length} 个订阅源吗?\n\n此操作将同时删除这些源的所有文章,且无法撤销!`)) {
+                return;
+            }
+
+            showMessage(`正在删除 ${selectedIds.length} 个订阅源...`, 'info', 'feedsMessage');
+
+            try {
+                const response = await fetch('/api/feeds/batch-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: selectedIds })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    const { deleted, failed, results } = result.data;
+
+                    if (failed > 0) {
+                        let errorMsg = `删除完成: 成功 ${deleted} 个, 失败 ${failed} 个\n\n失败列表:\n`;
+                        results.failed.forEach(f => {
+                            errorMsg += `#${f.id}: ${f.error}\n`;
+                        });
+                        showMessage(errorMsg, 'error', 'feedsMessage');
+                    } else {
+                        showMessage(`成功删除 ${deleted} 个订阅源 ✅`, 'success', 'feedsMessage');
+                    }
+
+                    // 重新加载订阅源列表
+                    await loadFeeds();
+                    await loadStats();
+                    updateSelectedCount();
+                } else {
+                    showMessage('批量删除失败: ' + result.error, 'error', 'feedsMessage');
+                }
+            } catch (error) {
+                console.error('批量删除失败:', error);
+                showMessage('批量删除失败: ' + error.message, 'error', 'feedsMessage');
             }
         }
 

@@ -35,26 +35,38 @@ function createWebServer(bot, chatId, errorHandler) {
       try {
         new URL(url);
       } catch (e) {
-        return res.status(400).json({ success: false, error: "URL 格式无效，请检查是否包含 http:// 或 https://" });
+        return res.status(400).json({
+          success: false,
+          error: "URL 格式无效，请检查是否包含 http:// 或 https://",
+        });
       }
 
       const previewResult = await rssChecker.previewFeed(url);
       res.json({ success: true, data: previewResult });
     } catch (error) {
-      console.error('预览RSS源失败:', error);
+      console.error("预览RSS源失败:", error);
       let errorMessage = error.message;
-      
+
       // 根据错误类型提供更友好的提示
-      if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('getaddrinfo')) {
-        errorMessage = '无法访问该地址，请检查 URL 是否正确';
-      } else if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('timeout')) {
-        errorMessage = '连接超时，请检查网络或稍后重试';
-      } else if (errorMessage.includes('ECONNREFUSED')) {
-        errorMessage = '连接被拒绝，服务器可能不可用';
-      } else if (errorMessage.includes('Invalid XML') || errorMessage.includes('Non-whitespace')) {
-        errorMessage = '该链接不是有效的 RSS/Atom 源';
+      if (
+        errorMessage.includes("ENOTFOUND") ||
+        errorMessage.includes("getaddrinfo")
+      ) {
+        errorMessage = "无法访问该地址，请检查 URL 是否正确";
+      } else if (
+        errorMessage.includes("ETIMEDOUT") ||
+        errorMessage.includes("timeout")
+      ) {
+        errorMessage = "连接超时，请检查网络或稍后重试";
+      } else if (errorMessage.includes("ECONNREFUSED")) {
+        errorMessage = "连接被拒绝，服务器可能不可用";
+      } else if (
+        errorMessage.includes("Invalid XML") ||
+        errorMessage.includes("Non-whitespace")
+      ) {
+        errorMessage = "该链接不是有效的 RSS/Atom 源";
       }
-      
+
       res.status(500).json({ success: false, error: errorMessage });
     }
   });
@@ -62,7 +74,12 @@ function createWebServer(bot, chatId, errorHandler) {
   // API: 添加订阅源
   app.post("/api/feeds", async (req, res) => {
     try {
-      const { url, pushLatest = false, pushCount = 5, enableAI = false } = req.body;
+      const {
+        url,
+        pushLatest = false,
+        pushCount = 5,
+        enableAI = false,
+      } = req.body;
       if (!url) {
         return res.status(400).json({ success: false, error: "缺少 URL 参数" });
       }
@@ -78,14 +95,19 @@ function createWebServer(bot, chatId, errorHandler) {
       // 添加到数据库
       const result = feeds.add.run(url, null);
       const feedId = result.lastInsertRowid;
-      
+
       // 设置 AI 总结开关
       if (enableAI) {
         feeds.updateAISummary.run(1, feedId);
       }
 
       // 拉取最新文章
-      const fetchResult = await rssChecker.fetchInitialArticles(feedId, url, pushLatest, pushCount);
+      const fetchResult = await rssChecker.fetchInitialArticles(
+        feedId,
+        url,
+        pushLatest,
+        pushCount
+      );
 
       res.json({
         success: true,
@@ -132,7 +154,7 @@ function createWebServer(bot, chatId, errorHandler) {
       if (title !== undefined) {
         feeds.updateTitle.run(title, feedId);
       }
-      
+
       if (aiSummaryEnabled !== undefined) {
         feeds.updateAISummary.run(aiSummaryEnabled ? 1 : 0, feedId);
       }
@@ -178,6 +200,97 @@ function createWebServer(bot, chatId, errorHandler) {
 
       const result = articles.deleteByFeed.run(feedId);
       res.json({ success: true, deletedCount: result.changes });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API: 批量检查错误源
+  app.post("/api/feeds/check-errors", async (req, res) => {
+    try {
+      const allFeeds = feeds.getAll.all();
+      const results = [];
+
+      for (const feed of allFeeds) {
+        try {
+          const testResult = await rssChecker.testFeed(feed.url);
+          results.push({
+            id: feed.id,
+            title: feed.title,
+            url: feed.url,
+            status: "ok",
+            articleCount: testResult.articleCount,
+            latestArticle: testResult.latestArticle,
+          });
+        } catch (error) {
+          results.push({
+            id: feed.id,
+            title: feed.title,
+            url: feed.url,
+            status: "error",
+            error: error.message,
+          });
+        }
+      }
+
+      const errorFeeds = results.filter((r) => r.status === "error");
+      const okFeeds = results.filter((r) => r.status === "ok");
+
+      res.json({
+        success: true,
+        data: {
+          total: allFeeds.length,
+          ok: okFeeds.length,
+          error: errorFeeds.length,
+          results: results,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API: 批量删除订阅源
+  app.post("/api/feeds/batch-delete", (req, res) => {
+    try {
+      const { ids } = req.body;
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res
+          .status(400)
+          .json({ success: false, error: "请提供要删除的订阅源ID数组" });
+      }
+
+      const results = {
+        success: [],
+        failed: [],
+      };
+
+      for (const id of ids) {
+        try {
+          const feedId = parseInt(id);
+          const feed = feeds.getById.get(feedId);
+
+          if (!feed) {
+            results.failed.push({ id: feedId, error: "订阅源不存在" });
+            continue;
+          }
+
+          feeds.remove.run(feedId);
+          results.success.push({ id: feedId, title: feed.title });
+        } catch (error) {
+          results.failed.push({ id: parseInt(id), error: error.message });
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          deleted: results.success.length,
+          failed: results.failed.length,
+          results: results,
+        },
+      });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -232,24 +345,24 @@ function createWebServer(bot, chatId, errorHandler) {
       });
 
       // 获取数据库信息
-      const fs = require('fs');
-      const path = require('path');
-      const dbPath = path.join(__dirname, '..', 'data', 'rss.db');
+      const fs = require("fs");
+      const path = require("path");
+      const dbPath = path.join(__dirname, "..", "data", "rss.db");
       let dbSize = 0;
-      let dbSizeFormatted = '0 B';
-      
+      let dbSizeFormatted = "0 B";
+
       if (fs.existsSync(dbPath)) {
         const stats = fs.statSync(dbPath);
         dbSize = stats.size;
         // 格式化文件大小
         if (dbSize < 1024) {
-          dbSizeFormatted = dbSize + ' B';
+          dbSizeFormatted = dbSize + " B";
         } else if (dbSize < 1024 * 1024) {
-          dbSizeFormatted = (dbSize / 1024).toFixed(2) + ' KB';
+          dbSizeFormatted = (dbSize / 1024).toFixed(2) + " KB";
         } else if (dbSize < 1024 * 1024 * 1024) {
-          dbSizeFormatted = (dbSize / (1024 * 1024)).toFixed(2) + ' MB';
+          dbSizeFormatted = (dbSize / (1024 * 1024)).toFixed(2) + " MB";
         } else {
-          dbSizeFormatted = (dbSize / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+          dbSizeFormatted = (dbSize / (1024 * 1024 * 1024)).toFixed(2) + " GB";
         }
       }
 
@@ -266,8 +379,8 @@ function createWebServer(bot, chatId, errorHandler) {
             path: dbPath,
             size: dbSize,
             sizeFormatted: dbSizeFormatted,
-            exists: fs.existsSync(dbPath)
-          }
+            exists: fs.existsSync(dbPath),
+          },
         },
       });
     } catch (error) {
@@ -339,21 +452,23 @@ function createWebServer(bot, chatId, errorHandler) {
   });
 
   // API: 获取 AI 设置
-  app.get('/api/ai-settings', (req, res) => {
+  app.get("/api/ai-settings", (req, res) => {
     try {
-      const enabled = settings.get.get('ai_summary_enabled')?.value === 'true';
-      const provider = settings.get.get('ai_provider')?.value || 'gemini';
-      const minArticles = parseInt(settings.get.get('ai_min_articles')?.value || '3');
-      
+      const enabled = settings.get.get("ai_summary_enabled")?.value === "true";
+      const provider = settings.get.get("ai_provider")?.value || "gemini";
+      const minArticles = parseInt(
+        settings.get.get("ai_min_articles")?.value || "3"
+      );
+
       // 获取当前提供商的 API Key 和 Model
-      const apiKey = settings.get.get(`ai_api_key_${provider}`)?.value || '';
-      const model = settings.get.get(`ai_model_${provider}`)?.value || '';
+      const apiKey = settings.get.get(`ai_api_key_${provider}`)?.value || "";
+      const model = settings.get.get(`ai_model_${provider}`)?.value || "";
 
       // 安全处理 API Key:永不返回完整密钥
-      let maskedKey = '';
+      let maskedKey = "";
       if (apiKey) {
         const visibleChars = Math.min(4, apiKey.length);
-        maskedKey = '***' + apiKey.slice(-visibleChars);
+        maskedKey = "***" + apiKey.slice(-visibleChars);
       }
 
       res.json({
@@ -363,8 +478,8 @@ function createWebServer(bot, chatId, errorHandler) {
           provider,
           apiKey: maskedKey,
           model,
-          minArticles
-        }
+          minArticles,
+        },
       });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
@@ -372,18 +487,18 @@ function createWebServer(bot, chatId, errorHandler) {
   });
 
   // API: 更新 AI 设置
-  app.put('/api/ai-settings', (req, res) => {
+  app.put("/api/ai-settings", (req, res) => {
     try {
       const { enabled, provider, apiKey, model, minArticles } = req.body;
 
       if (enabled !== undefined) {
-        settings.set.run('ai_summary_enabled', enabled ? 'true' : 'false');
+        settings.set.run("ai_summary_enabled", enabled ? "true" : "false");
       }
       if (provider) {
-        settings.set.run('ai_provider', provider);
+        settings.set.run("ai_provider", provider);
       }
       // 保存到对应提供商的 API Key 字段
-      if (apiKey && !apiKey.startsWith('***')) {
+      if (apiKey && !apiKey.startsWith("***")) {
         settings.set.run(`ai_api_key_${provider}`, apiKey);
       }
       // 保存到对应提供商的 Model 字段
@@ -391,7 +506,7 @@ function createWebServer(bot, chatId, errorHandler) {
         settings.set.run(`ai_model_${provider}`, model);
       }
       if (minArticles !== undefined) {
-        settings.set.run('ai_min_articles', minArticles.toString());
+        settings.set.run("ai_min_articles", minArticles.toString());
       }
 
       res.json({ success: true });
@@ -400,10 +515,173 @@ function createWebServer(bot, chatId, errorHandler) {
     }
   });
 
-  // API: 获取 AI 使用统计
-  app.get('/api/ai-stats', (req, res) => {
+  // API: 导出订阅源 (JSON)
+  app.get("/api/feeds/export/json", (req, res) => {
     try {
-      const AISummaryService = require('./aiSummary');
+      const allFeeds = feeds.getAll.all();
+      const exportData = {
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        feeds: allFeeds.map((feed) => ({
+          title: feed.title,
+          url: feed.url,
+          ai_summary_enabled: feed.ai_summary_enabled === 1,
+        })),
+      };
+
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="rss-feeds-${Date.now()}.json"`
+      );
+      res.json(exportData);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API: 导出订阅源 (OPML)
+  app.get("/api/feeds/export/opml", (req, res) => {
+    try {
+      const allFeeds = feeds.getAll.all();
+
+      let opml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      opml += '<opml version="2.0">\n';
+      opml += "  <head>\n";
+      opml += `    <title>RSS Feeds Export</title>\n`;
+      opml += `    <dateCreated>${new Date().toUTCString()}</dateCreated>\n`;
+      opml += "  </head>\n";
+      opml += "  <body>\n";
+      opml += '    <outline text="Feeds">\n';
+
+      allFeeds.forEach((feed) => {
+        const title = feed.title
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+        const url = feed.url
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+        opml += `      <outline type="rss" text="${title}" xmlUrl="${url}" />\n`;
+      });
+
+      opml += "    </outline>\n";
+      opml += "  </body>\n";
+      opml += "</opml>";
+
+      res.setHeader("Content-Type", "text/xml");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="rss-feeds-${Date.now()}.opml"`
+      );
+      res.send(opml);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API: 导入订阅源
+  app.post("/api/feeds/import", (req, res) => {
+    try {
+      const { data, format } = req.body;
+      const results = { added: 0, skipped: 0, errors: [] };
+
+      if (format === "json") {
+        // 解析 JSON 格式
+        let feedsData;
+        try {
+          feedsData = typeof data === "string" ? JSON.parse(data) : data;
+        } catch (e) {
+          return res
+            .status(400)
+            .json({ success: false, error: "Invalid JSON format" });
+        }
+
+        const feedsList = feedsData.feeds || feedsData;
+        if (!Array.isArray(feedsList)) {
+          return res
+            .status(400)
+            .json({ success: false, error: "Invalid JSON structure" });
+        }
+
+        feedsList.forEach((feed) => {
+          try {
+            if (!feed.url) {
+              results.errors.push(
+                `Missing URL for feed: ${feed.title || "Unknown"}`
+              );
+              return;
+            }
+
+            // 检查是否已存在
+            const existing = feeds.getByUrl.get(feed.url);
+            if (existing) {
+              results.skipped++;
+              return;
+            }
+
+            // 添加订阅源
+            feeds.add.run(feed.url, feed.title || feed.url);
+            results.added++;
+          } catch (e) {
+            results.errors.push(`Error adding ${feed.url}: ${e.message}`);
+          }
+        });
+      } else if (format === "opml") {
+        // 解析 OPML 格式
+        const DOMParser = require("xmldom").DOMParser;
+        let doc;
+        try {
+          doc = new DOMParser().parseFromString(data, "text/xml");
+        } catch (e) {
+          return res
+            .status(400)
+            .json({ success: false, error: "Invalid OPML format" });
+        }
+
+        const outlines = doc.getElementsByTagName("outline");
+        for (let i = 0; i < outlines.length; i++) {
+          const outline = outlines[i];
+          const xmlUrl = outline.getAttribute("xmlUrl");
+          const text =
+            outline.getAttribute("text") || outline.getAttribute("title");
+
+          if (!xmlUrl) continue;
+
+          try {
+            // 检查是否已存在
+            const existing = feeds.getByUrl.get(xmlUrl);
+            if (existing) {
+              results.skipped++;
+              continue;
+            }
+
+            // 添加订阅源
+            feeds.add.run(xmlUrl, text || xmlUrl);
+            results.added++;
+          } catch (e) {
+            results.errors.push(`Error adding ${xmlUrl}: ${e.message}`);
+          }
+        }
+      } else {
+        return res
+          .status(400)
+          .json({ success: false, error: "Unsupported format" });
+      }
+
+      res.json({ success: true, data: results });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // API: 获取 AI 使用统计
+  app.get("/api/ai-stats", (req, res) => {
+    try {
+      const AISummaryService = require("./aiSummary");
       const aiService = new AISummaryService();
       const days = parseInt(req.query.days) || 30;
       const stats = aiService.getStats(days);
