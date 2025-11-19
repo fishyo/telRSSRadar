@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试消息显示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .message-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .message-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>测试消息显示功能</h1>
+    
+    <div id="testMessage" style="min-height: 50px;"></div>
+    
+    <div>
+        <button class="btn-success" onclick="testSuccess()">测试成功消息</button>
+        <button class="btn-error" onclick="testError()">测试错误消息</button>
+        <button class="btn-info" onclick="testInfo()">测试信息消息</button>
+    </div>
+    
+    <hr style="margin: 30px 0;">
+    
+    <h2>控制台日志：</h2>
+    <div id="logs" style="background: #f3f4f6; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px;"></div>
+
+    <script>
+        // 重写的 showMessage 函数
+        function showMessage(containerId, message, type = 'info') {
+            const logMsg = `[showMessage] Container: ${containerId}, Type: ${type}, Message: ${message}`;
+            console.log(logMsg);
+            addLog(logMsg);
+            
+            const container = document.getElementById(containerId);
+            if (!container) {
+                const errorMsg = `[showMessage] 容器不存在: ${containerId}`;
+                console.error(errorMsg);
+                addLog(errorMsg, 'error');
+                return;
+            }
+
+            // 清空旧消息
+            container.innerHTML = '';
+
+            // 创建新消息
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.style.cssText = 'display: block; opacity: 0; transition: opacity 0.3s ease-in-out;';
+            messageDiv.textContent = message;
+
+            container.appendChild(messageDiv);
+            addLog('消息元素已添加到容器');
+
+            // 触发动画
+            setTimeout(() => {
+                messageDiv.style.opacity = '1';
+                addLog('消息已显示（opacity: 1）');
+            }, 10);
+
+            // 自动隐藏
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                addLog('开始隐藏消息');
+                setTimeout(() => {
+                    if (container.contains(messageDiv)) {
+                        container.removeChild(messageDiv);
+                        addLog('消息已从容器中移除');
+                    }
+                }, 300);
+            }, 5000);
+        }
+        
+        function testSuccess() {
+            showMessage('testMessage', '✅ AI 设置已成功保存！提供商: Google Gemini', 'success');
+        }
+        
+        function testError() {
+            showMessage('testMessage', '❌ 保存失败: 测试错误信息', 'error');
+        }
+        
+        function testInfo() {
+            showMessage('testMessage', '🔄 正在保存配置并测试连接...', 'info');
+        }
+        
+        function addLog(msg, type = 'info') {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'red' : 'black';
+            logs.innerHTML += `<div style="color: ${color};">[${time}] ${msg}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        addLog('页面加载完成，准备测试');
+    </script>
+</body>
+</html>

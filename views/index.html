@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RSS Bot 管理面板</title>
+    <title>telRSSRadar 管理面板</title>
     <style>
         * {
             margin: 0;
@@ -604,11 +604,55 @@
         .message-success {
             background: #d1fae5;
             color: #065f46;
+            border-left: 4px solid #10b981;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
         }
 
         .message-error {
             background: #fee2e2;
             color: #991b1b;
+            border-left: 4px solid #ef4444;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .message-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
         }
 
         .settings-grid {
@@ -897,9 +941,9 @@
                 <div class="form-group">
                     <label for="aiProvider">AI 提供商</label>
                     <select id="aiProvider" onchange="onProviderChange()">
-                        <option value="gemini">Google Gemini (推荐免费)</option>
-                        <option value="deepseek">DeepSeek (性价比高)</option>
-                        <option value="qwen">通义千问 (国内稳定)</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="qwen">通义千问</option>
                     </select>
                     <small style="display:block;color:#666;margin-top:5px;">
                         不同提供商的 API Key 单独保存，切换时无需重新输入
@@ -927,7 +971,7 @@
                     <label for="aiModel">模型名称 (可选)</label>
                     <input type="text" id="aiModel" placeholder="留空使用默认模型">
                     <small id="aiModelHint" style="display:block;color:#666;margin-top:5px;">
-                        Gemini: gemini-2.0-flash-exp | DeepSeek: deepseek-chat | 千问: qwen-turbo
+                        Gemini: gemini-2.0-flash-exp | DeepSeek: deepseek-chat | 千问: qwen-flash
                     </small>
                 </div>
 
@@ -946,7 +990,12 @@
                 <div class="action-buttons" style="gap:10px;">
                     <button class="btn btn-success" onclick="saveAISettings()">💾 保存 AI 设置</button>
                     <button class="btn btn-primary" onclick="testAIConnection()" id="testAIBtn">🔌 测试连接</button>
+                    <button class="btn" style="background:#f59e0b;color:white;" onclick="showMessage('aiMessage', '🧪 这是一条测试消息！如果你看到这条消息，说明显示功能正常。', 'info')">🧪 测试消息显示</button>
                 </div>
+
+                <small style="display:block;color:#666;margin-top:10px;line-height:1.6;">
+                    💡 提示：已保存的 API Key 可以直接测试和更改模型，无需重新输入密钥
+                </small>
 
                 <!-- API Key 获取帮助 -->
                 <div id="apiKeyHelp"
@@ -1650,12 +1699,40 @@
             }
         }
 
-        // Show message
-        function showMessage(containerId, message, type) {
+        // Show message - 完全重写版本
+        function showMessage(containerId, message, type = 'info') {
+            console.log(`[showMessage] Container: ${containerId}, Type: ${type}, Message: ${message}`);
+            
             const container = document.getElementById(containerId);
-            container.innerHTML = `<div class="message message-${type}">${message}</div>`;
+            if (!container) {
+                console.error(`[showMessage] 容器不存在: ${containerId}`);
+                return;
+            }
+
+            // 清空旧消息
+            container.innerHTML = '';
+
+            // 创建新消息
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.style.cssText = 'display: block; opacity: 0; transition: opacity 0.3s ease-in-out;';
+            messageDiv.textContent = message;
+
+            container.appendChild(messageDiv);
+
+            // 触发动画
             setTimeout(() => {
-                container.innerHTML = '';
+                messageDiv.style.opacity = '1';
+            }, 10);
+
+            // 自动隐藏
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (container.contains(messageDiv)) {
+                        container.removeChild(messageDiv);
+                    }
+                }, 300);
             }, 5000);
         }
 
@@ -1741,12 +1818,21 @@
             }
         }
 
-        // Clear API Key
-        function clearApiKey() {
-            if (confirm('确定要清除 API Key 吗？')) {
-                document.getElementById('aiApiKey').value = '';
-                updateApiKeyInfo('', document.getElementById('aiProvider').value);
+        // Clear API Key - 完全重写版本
+        async function clearApiKey() {
+            console.log('[clearApiKey] 清除 API Key');
+            
+            if (!confirm('确定要清除 API Key 吗？清除后需要重新输入。')) {
+                console.log('[clearApiKey] 用户取消');
+                return;
             }
+
+            document.getElementById('aiApiKey').value = '';
+            updateApiKeyInfo('', document.getElementById('aiProvider').value);
+            
+            const msg = '⚠️ API Key 已清除，请输入新的密钥并保存';
+            console.log('[clearApiKey]', msg);
+            showMessage('aiMessage', msg, 'info');
         }
 
         // Provider change handler
@@ -1777,7 +1863,6 @@
                         <li>点击 "Create API Key" 按钮</li>
                         <li>复制生成的 API Key 并粘贴到上方输入框</li>
                     </ol>
-                    <p style="color:#666;font-size:13px;">💡 Gemini API 目前免费使用，每分钟最多 60 个请求</p>
                 `,
                 'deepseek': `
                     <p><strong>DeepSeek API Key 获取步骤:</strong></p>
@@ -1788,7 +1873,6 @@
                         <li>创建新的 API Key</li>
                         <li>复制 Key 并粘贴到上方输入框</li>
                     </ol>
-                    <p style="color:#666;font-size:13px;">💰 DeepSeek 定价: 输入 ¥1/M tokens, 输出 ¥2/M tokens</p>
                 `,
                 'qwen': `
                     <p><strong>通义千问 API Key 获取步骤:</strong></p>
@@ -1799,7 +1883,6 @@
                         <li>创建新的 API Key</li>
                         <li>复制 Key 并粘贴到上方输入框</li>
                     </ol>
-                    <p style="color:#666;font-size:13px;">💰 千问定价: 输入 ¥0.5/M tokens, 输出 ¥2/M tokens</p>
                 `
             };
 
@@ -1815,43 +1898,82 @@
             document.getElementById('aiModelHint').textContent = modelHints[provider] || '';
         }
 
-        // Test AI connection
+        // Test AI connection - 完全重写版本
         async function testAIConnection() {
+            console.log('[testAIConnection] 开始测试...');
+            
             const provider = document.getElementById('aiProvider').value;
             const apiKey = document.getElementById('aiApiKey').value.trim();
             const model = document.getElementById('aiModel').value.trim();
+            const isMasked = apiKey.startsWith('***');
 
-            if (!apiKey || apiKey.startsWith('***')) {
-                showMessage('aiMessage', '⚠️ 请先输入 API Key', 'error');
+            console.log('[testAIConnection] 配置:', { provider, model, isMasked, hasApiKey: !!apiKey });
+
+            if (!apiKey) {
+                const msg = '⚠️ 请先输入 API Key 或配置已保存的密钥';
+                console.warn('[testAIConnection]', msg);
+                showMessage('aiMessage', msg, 'error');
                 return;
             }
 
             const testBtn = document.getElementById('testAIBtn');
-            const originalText = testBtn.textContent;
-            testBtn.disabled = true;
-            testBtn.textContent = '⏳ 测试中...';
+            if (testBtn) {
+                testBtn.disabled = true;
+                testBtn.textContent = '⏳ 测试中...';
+            }
 
             try {
-                // 先保存设置
-                const saveResponse = await fetch('/api/ai-settings', {
+                // 显示进度消息
+                const progressMsg = isMasked 
+                    ? '🔄 正在使用已保存的 API Key 测试连接...' 
+                    : '🔄 正在保存新的 API Key 并测试连接...';
+                console.log('[testAIConnection]', progressMsg);
+                showMessage('aiMessage', progressMsg, 'info');
+
+                const requestBody = { enabled: true, provider };
+                if (model) requestBody.model = model;
+                if (!isMasked && apiKey) requestBody.apiKey = apiKey;
+
+                console.log('[testAIConnection] 发送请求:', requestBody);
+
+                const response = await fetch('/api/ai-settings', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: true, provider, apiKey, model })
+                    body: JSON.stringify(requestBody)
                 });
 
-                if (!saveResponse.ok) {
-                    throw new Error('保存设置失败');
-                }
+                console.log('[testAIConnection] 响应状态:', response.status);
+                const result = await response.json();
+                console.log('[testAIConnection] 响应数据:', result);
 
-                // 这里可以添加实际的测试 API 调用
-                // 由于我们没有专门的测试端点，暂时只检查保存是否成功
-                showMessage('aiMessage', '✅ API Key 已保存，将在下次 RSS 检查时测试实际连接', 'success');
-                loadAISettings();
+                if (result.success) {
+                    const providerNames = {
+                        'gemini': 'Google Gemini',
+                        'deepseek': 'DeepSeek',
+                        'qwen': '通义千问'
+                    };
+                    const modelInfo = model ? ` (模型: ${model})` : '';
+                    const keyStatus = isMasked ? '使用已保存的 API Key' : 'API Key 已保存';
+                    const successMsg = `✅ 配置成功！${providerNames[provider]} ${keyStatus}${modelInfo}，将在下次 RSS 检查时进行实际调用`;
+                    
+                    console.log('[testAIConnection] 测试成功:', successMsg);
+                    showMessage('aiMessage', successMsg, 'success');
+                    
+                    await loadAISettings();
+                } else {
+                    const errorMsg = '❌ 测试失败: ' + result.error;
+                    console.error('[testAIConnection] 测试失败:', result.error);
+                    showMessage('aiMessage', errorMsg, 'error');
+                }
             } catch (error) {
-                showMessage('aiMessage', '❌ 测试失败: ' + error.message, 'error');
+                const errorMsg = '❌ 操作失败: ' + error.message;
+                console.error('[testAIConnection] 异常:', error);
+                showMessage('aiMessage', errorMsg, 'error');
             } finally {
-                testBtn.disabled = false;
-                testBtn.textContent = originalText;
+                if (testBtn) {
+                    testBtn.disabled = false;
+                    testBtn.textContent = '🔌 测试连接';
+                }
             }
         }
 
@@ -1905,30 +2027,77 @@
         }
 
         // Save AI settings
+        // Save AI Settings - 完全重写版本
         async function saveAISettings() {
+            console.log('[saveAISettings] 开始保存...');
+            
             const enabled = document.getElementById('aiEnabled').checked;
             const provider = document.getElementById('aiProvider').value;
             const apiKey = document.getElementById('aiApiKey').value.trim();
             const model = document.getElementById('aiModel').value.trim();
             const minArticles = parseInt(document.getElementById('aiMinArticles').value) || 3;
+            const isMasked = apiKey.startsWith('***');
+
+            console.log('[saveAISettings] 配置:', { enabled, provider, model, minArticles, isMasked, hasApiKey: !!apiKey });
+
+            // 获取保存按钮
+            const saveBtn = document.querySelector('button[onclick="saveAISettings()"]');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = '💾 保存中...';
+            }
 
             try {
+                const requestBody = { enabled, provider, model, minArticles };
+
+                // 只有在输入了新的 API Key 时才发送
+                if (!isMasked && apiKey) {
+                    requestBody.apiKey = apiKey;
+                    console.log('[saveAISettings] 将保存新的 API Key');
+                } else {
+                    console.log('[saveAISettings] 跳过 API Key（使用已保存的）');
+                }
+
+                console.log('[saveAISettings] 发送请求:', requestBody);
+
                 const response = await fetch('/api/ai-settings', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled, provider, apiKey, model, minArticles })
+                    body: JSON.stringify(requestBody)
                 });
+
+                console.log('[saveAISettings] 响应状态:', response.status);
                 const result = await response.json();
+                console.log('[saveAISettings] 响应数据:', result);
 
                 if (result.success) {
-                    showMessage('aiMessage', '✅ AI 设置已保存', 'success');
-                    loadAISettings(); // 重新加载以更新状态卡片
-                    loadAIStats();
+                    const providerNames = {
+                        'gemini': 'Google Gemini',
+                        'deepseek': 'DeepSeek',
+                        'qwen': '通义千问'
+                    };
+                    const keyInfo = (!isMasked && apiKey) ? '，API Key 已更新' : '';
+                    const successMsg = `✅ AI 设置已成功保存！提供商: ${providerNames[provider]}${keyInfo}`;
+                    
+                    console.log('[saveAISettings] 显示成功消息:', successMsg);
+                    showMessage('aiMessage', successMsg, 'success');
+                    
+                    await loadAISettings();
+                    await loadAIStats();
                 } else {
-                    showMessage('aiMessage', '❌ ' + result.error, 'error');
+                    const errorMsg = '❌ 保存失败: ' + result.error;
+                    console.error('[saveAISettings] 保存失败:', result.error);
+                    showMessage('aiMessage', errorMsg, 'error');
                 }
             } catch (error) {
-                showMessage('aiMessage', '❌ 保存失败: ' + error.message, 'error');
+                const errorMsg = '❌ 保存失败: ' + error.message;
+                console.error('[saveAISettings] 异常:', error);
+                showMessage('aiMessage', errorMsg, 'error');
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 保存 AI 设置';
+                }
             }
         }
 
