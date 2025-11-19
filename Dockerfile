@@ -15,12 +15,16 @@ RUN npm ci --production
 
 # 复制应用代码
 COPY src ./src
+COPY views ./views
 
 # 创建数据目录
 RUN mkdir -p /app/data
 
 # 设置环境变量
 ENV NODE_ENV=production
+
+# 暴露 Web 端口
+EXPOSE 3000
 
 # 启动应用
 CMD ["npm", "start"]
